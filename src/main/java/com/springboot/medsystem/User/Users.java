@@ -4,34 +4,23 @@ import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Patient.PatientProfile;
 import com.springboot.medsystem.Pharmacy.PharmacyProfile;
 import jakarta.persistence.*;
-import com.vladmihalcea.hibernate.type.json.JsonType;
-import jakarta.persistence.Entity;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
 
 import java.util.List;
 
-
 @Entity
-@TypeDef(name = "json", typeClass = JsonType.class)
+@Table(name = "Users")
 public class Users {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @Column(nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Type(type = "json")
-    @Column(columnDefinition = "jsonb")
+    @Transient
     private List<DoctorProfile> doctors;
 
-    @Type(type = "json")
-    @Column(columnDefinition = "jsonb")
+    @Transient
     private List<PatientProfile> patients;
 
-    @Type(type = "json")
-    @Column(columnDefinition = "jsonb")
-    private List<PharmacyProfile> pharmacist;
-
-
-
+    @Transient
+    private List<PharmacyProfile> pharmacists;
 }

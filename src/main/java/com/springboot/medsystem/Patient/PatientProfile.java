@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,7 +19,11 @@ public class PatientProfile extends Profile {
     @Column(nullable = false)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     private Insurance insurance;
-    private long insuranceNumber;
+
+    private String insuranceNumber;
+    private Date dateOfBirth;
+
     private String referenceNumber;
 }
