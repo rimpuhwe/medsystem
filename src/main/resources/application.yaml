@@ -1,20 +1,25 @@
 spring:
+  config:
+    import:
+      optional:
+        dotenv:
   application:
     name: medsystem
   datasource:
     password: ${DB_PASSWORD}
     username: ${DB_USERNAME}
     url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
   jpa:
     properties:
       hibernate:
         format_sql: true
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
   mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
+    host: smtp.gmail.com
+    port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
@@ -27,3 +32,6 @@ spring:
         transport.protocol: smtp
         smtp.timeout: 5000
         debug: false
+
+server:
+  port: ${SERVER_PORT}
