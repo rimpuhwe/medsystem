@@ -10,4 +10,6 @@ public interface PharmacyRepository extends JpaRepository<PharmacyProfile, Long>
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);
+
+    Optional<PharmacyProfile> findByEmail(String email);
 }

@@ -6,10 +6,12 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -45,6 +47,38 @@ public class JwtService {
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
                 .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    /* ---------- FOR OAUTH2 LOGIN ---------- */
+    public String generateTokenFromOAuth(OAuth2User oAuth2User) {
+        String email = oAuth2User.getAttribute("email");
+
+        String role = oAuth2User.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElseThrow(() -> new IllegalStateException("Role missing"));
+
+        return Jwts.builder()
+                .claim("role", role) // MUST be ROLE_PATIENT / ROLE_PHARMACIST
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    /* ---------- SHARED TOKEN BUILDER ---------- */
+    private String buildToken(String subject, Object roles) {
+        return Jwts.builder()
+                .setSubject(subject)
+                .addClaims(Map.of("roles", roles))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
+                .signWith(SignatureAlgorithm.HS256, key)
                 .compact();
     }
 
