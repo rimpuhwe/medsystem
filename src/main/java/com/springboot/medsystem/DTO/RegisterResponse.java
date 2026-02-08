@@ -15,5 +15,7 @@ public class RegisterResponse {
     private String referenceNumber;
     private String token;
     private String otp;
+
+    @CreationTimestamp
     private LocalDate Timestamp;
 }
