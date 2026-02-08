@@ -79,13 +79,12 @@ public class AuthService {
         otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
-        // Send OTP email
-        emailService.sendOtpEmail(patient.getEmail(), otp);
-
+        // For development: include OTP in response, do not send email
         return new RegisterResponse(
-                "Patient registration successful. Please verify your email with the OTP sent.",
+                "Patient registration successful. Use the OTP below to verify your email.",
                 referenceNumber,
                 null,
+                otp,
                 LocalDate.now());
     }
 
@@ -120,6 +119,7 @@ public class AuthService {
                 "Pharmacist registration successful",
                 null, // Pharmacies do NOT get reference numbers
                 token,
+                null,
                 LocalDate.now());
     }
 
