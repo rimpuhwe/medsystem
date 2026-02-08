@@ -1,5 +1,6 @@
 package com.springboot.medsystem.Patient;
 
+import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import com.springboot.medsystem.DTO.RegisterResponse;
 import com.springboot.medsystem.Enums.Role;
 
@@ -33,15 +34,15 @@ public class PatientProfileController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Update patient profile", description = "Updates the authenticated patient's profile (except name). Requires JWT and PATIENT role.", security = @SecurityRequirement(name = "bearerAuth"))
-    @PutMapping
-    public ResponseEntity<PatientProfile> updateProfile(@AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody PatientProfile updateRequest) {
-        String email = userDetails.getUsername();
-        PatientProfile updated = patientService.updateProfile(email, updateRequest);
-        if (updated == null) {
-            return ResponseEntity.notFound().build();
+        @Operation(summary = "Update patient profile", security = @SecurityRequirement(name = "bearerAuth"))
+        @PutMapping("/profile")
+        public ResponseEntity<PatientProfile> updateProfile(@AuthenticationPrincipal UserDetails userDetails,
+                                                           @RequestBody PatientProfileUpdateRequest updateRequest) {
+            String email = userDetails.getUsername();
+            PatientProfile updated = patientService.updateProfile(email, updateRequest);
+            if (updated == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(updated);
         }
-        return ResponseEntity.ok(updated);
-    }
 }
