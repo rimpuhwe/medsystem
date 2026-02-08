@@ -17,21 +17,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-        transport.protocol: smtp
-        smtp.timeout: 5000
-        debug: false
+  # mail configuration removed for development mode
   security:
     oauth2:
       client:
@@ -48,7 +34,6 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
-
 
 server:
   port: ${SERVER_PORT}
