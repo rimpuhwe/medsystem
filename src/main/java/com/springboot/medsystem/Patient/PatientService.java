@@ -1,5 +1,6 @@
 package com.springboot.medsystem.Patient;
 
+import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
 
@@ -16,7 +17,7 @@ public class PatientService {
         return patientRepository.findByEmail(email);
     }
 
-    public PatientProfile updateProfile(String email, PatientProfile updateRequest) {
+    public PatientProfile updateProfile(String email, PatientProfileUpdateRequest updateRequest) {
         Optional<PatientProfile> patientOpt = patientRepository.findByEmail(email);
         if (patientOpt.isEmpty()) {
             return null;
