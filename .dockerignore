@@ -1,0 +1,15 @@
+# Ignore Maven build output (we copy only the jar)
+target/
+# Ignore Git
+.git
+.gitignore
+# Ignore IDE files
+.vscode/
+.idea/
+*.iml
+# Ignore logs and temp files
+*.log
+*.tmp
+# Ignore local environment files
+.env
+.github
