@@ -2,6 +2,7 @@ package com.springboot.medsystem.User;
 
 import com.springboot.medsystem.Enums.Gender;
 import com.springboot.medsystem.Enums.Role;
+import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.MappedSuperclass;
@@ -16,7 +17,9 @@ import lombok.Setter;
 public class Profile {
 
     protected String fullName;
+    @Column(unique = true)
     protected String email;
+    @Column(unique = true)
     protected String phone;
     private String password;
 

@@ -35,7 +35,6 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final OtpVerificationRepository otpVerificationRepository;
-    private final EmailService emailService;
 
     public AuthService(
             PatientRepository patientRepository,
@@ -43,15 +42,13 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
-            OtpVerificationRepository otpVerificationRepository,
-            EmailService emailService) {
+            OtpVerificationRepository otpVerificationRepository) {
         this.patientRepository = patientRepository;
         this.pharmacyRepository = pharmacyRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.otpVerificationRepository = otpVerificationRepository;
-        this.emailService = emailService;
     }
 
     public RegisterResponse registerPatient(PatientRegisterRequest request) {
@@ -175,7 +172,6 @@ public class AuthService {
         otp.setExpiry(LocalDateTime.now().plusMinutes(10));
         otp.setVerified(false);
         otpVerificationRepository.save(otp);
-        emailService.sendOtpEmail(email, newOtp);
     }
 
     public void resetPassword(ResetPasswordRequest request) {
