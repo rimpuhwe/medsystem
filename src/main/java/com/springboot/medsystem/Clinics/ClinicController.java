@@ -1,38 +1,57 @@
 package com.springboot.medsystem.Clinics;
 
-import org.springframework.beans.factory.annotation.Autowired;
+
+import com.springboot.medsystem.DTO.ClinicDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/clinics")
-public class ClinicController {
-    @Autowired
-    private ClinicService clinicService;
+@RequestMapping("/api/clinic")
+@Tag(name = "Clinic", description = "Endpoints for adding and view the clinic requirement. Requires role: PATIENT and ADMIN")
 
-    @GetMapping
+public class ClinicController {
+
+    private final ClinicService clinicService;
+
+    public ClinicController(ClinicService clinicService) {
+        this.clinicService = clinicService;
+    }
+
+
+    @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
+    @Operation(summary = "Get all clinics", description = "Returns a list of all clinics. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public List<Clinic> getAllClinics() {
         return clinicService.getAllClinics();
     }
 
 
+
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
+    @Operation(summary = "Search clinic by name", description = "Search for a clinic by name. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public Clinic searchClinicsByName(@RequestParam String name) {
         return clinicService.getClinicByName(name);
     }
 
+
     @GetMapping(params = "name")
     @PreAuthorize("hasRole('PATIENT')")
+    @Operation(summary = "Get clinic by name", description = "Returns a clinic by name. Accessible by PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public Clinic getClinicByName(@RequestParam String name) {
         return clinicService.getClinicByName(name);
     }
 
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Clinic addClinic(@RequestBody Clinic clinic) {
+    @Operation(summary = "Add a new clinic", description = "Adds a new clinic to the system. Accessible by ADMIN.", security = @SecurityRequirement(name = "bearerAuth"))
+    public Clinic addClinic(@RequestBody ClinicDto clinic) {
         return clinicService.addClinic(clinic);
     }
 }

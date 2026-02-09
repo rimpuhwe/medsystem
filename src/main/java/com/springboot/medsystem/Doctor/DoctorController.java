@@ -1,6 +1,11 @@
 package com.springboot.medsystem.Doctor;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.springboot.medsystem.DTO.DoctorDto;
+import com.springboot.medsystem.DTO.DoctorResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +13,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/doctors")
+@Tag(name = "Doctor Profile", description = "Endpoints for the doctor's profile and all tasks a Doctor can perform. Requires role: PATIENT , Aunthenticated DOCTOR and ADMIN")
+
 public class DoctorController {
 
     private final DoctorService doctorService;
@@ -16,35 +23,37 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    // ADMIN and PATIENT can view all doctors
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
+    @Operation(summary = "Get all doctors", description = "Returns a list of all doctors. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public List<DoctorProfile> getAllDoctors() {
         return doctorService.getAllDoctors();
     }
 
 
-    // ADMIN and PATIENT can search doctors by name
+
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
+    @Operation(summary = "Search doctor by name", description = "Search for a doctor by name. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public DoctorProfile searchDoctorsByName(@RequestParam String name) {
         return doctorService.getDoctorByName(name);
     }
 
-    // DOCTOR can view their own profile
+
+
     @GetMapping("/me")
     @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Get own doctor profile", description = "Returns the authenticated doctor's profile. Accessible by DOCTOR.", security = @SecurityRequirement(name = "bearerAuth"))
     public DoctorProfile getMyProfile(Authentication authentication) {
         String email = authentication.getName();
-        return doctorService.getAllDoctors().stream()
-                .filter(doc -> email.equals(doc.getEmail()))
-                .findFirst().orElse(null);
+        return doctorService.getDoctorByEmail(email);
     }
 
-    // ADMIN can add doctors
+   
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public DoctorProfile addDoctor(@RequestBody DoctorProfile doctorProfile) {
-        return doctorService.addDoctor(doctorProfile);
+    @Operation(summary = "Add a new doctor", description = "Adds a new doctor to the system. Accessible by ADMIN.", security = @SecurityRequirement(name = "bearerAuth"))
+    public DoctorResponse addDoctor(@RequestBody DoctorDto doctor) {
+        return doctorService.addDoctor(doctor);
     }
 }
