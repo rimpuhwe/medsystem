@@ -1,31 +1,26 @@
-package com.springboot.medsystem.Doctor;
+package com.springboot.medsystem.Admin;
 
-import com.springboot.medsystem.Clinics.Clinic;
-import com.springboot.medsystem.Enums.Service;
+import com.springboot.medsystem.Enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "Doctors")
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-public class DoctorProfile {
+public class Admin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
 
     private String fullName;
+    private String password;
     private String email;
-    private String phoneNumber;
-
-    @ManyToOne
-    @JoinColumn(name = "clinic_id")
-    private Clinic clinic;
 
     @Enumerated(EnumType.STRING)
-    private Service service;
+    private Role role;
+
 }
