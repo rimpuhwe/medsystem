@@ -1,6 +1,7 @@
 package com.springboot.medsystem.Doctor;
 
 import com.springboot.medsystem.Clinics.Clinic;
+import com.springboot.medsystem.Enums.Role;
 import com.springboot.medsystem.Enums.Service;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -24,8 +25,16 @@ public class DoctorProfile {
 
     @ManyToOne
     @JoinColumn(name = "clinic_id")
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private Clinic clinic;
+
 
     @Enumerated(EnumType.STRING)
     private Service service;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    private String password;
+
 }

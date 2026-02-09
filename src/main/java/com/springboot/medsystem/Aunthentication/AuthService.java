@@ -1,6 +1,10 @@
 package com.springboot.medsystem.Aunthentication;
 
+import com.springboot.medsystem.Admin.Admin;
+import com.springboot.medsystem.Admin.AdminRepository;
 import com.springboot.medsystem.DTO.*;
+import com.springboot.medsystem.Doctor.DoctorProfile;
+import com.springboot.medsystem.Doctor.DoctorRepository;
 import com.springboot.medsystem.Enums.Role;
 import com.springboot.medsystem.Patient.PatientProfile;
 import com.springboot.medsystem.Patient.PatientRepository;
@@ -17,13 +21,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Objects;
-import java.util.UUID;
-
-import com.springboot.medsystem.DTO.OtpRequest;
-import com.springboot.medsystem.DTO.ResetPasswordRequest;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 
@@ -35,6 +36,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final OtpVerificationRepository otpVerificationRepository;
+    private final AdminRepository adminRepository;
+    private final DoctorRepository doctorRepository;
 
     public AuthService(
             PatientRepository patientRepository,
@@ -42,16 +45,21 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
-            OtpVerificationRepository otpVerificationRepository) {
+            OtpVerificationRepository otpVerificationRepository,
+            AdminRepository adminRepository,
+            DoctorRepository doctorRepository) {
         this.patientRepository = patientRepository;
         this.pharmacyRepository = pharmacyRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.otpVerificationRepository = otpVerificationRepository;
+        this.adminRepository = adminRepository;
+        this.doctorRepository = doctorRepository;
     }
 
     public RegisterResponse registerPatient(PatientRegisterRequest request) {
+        // Add similar OTP logic for doctor registration if needed
         validateUniqueness(request);
         String referenceNumber = generateUniquePatientReferenceNumber();
         PatientProfile patient = new PatientProfile();
@@ -86,6 +94,7 @@ public class AuthService {
     }
 
     public RegisterResponse registerPharmacist(PharmacyRegisterRequest request) {
+        // Add similar OTP logic for pharmacist registration if needed
 
         validateUniqueness(request);
 
@@ -119,7 +128,6 @@ public class AuthService {
                 null,
                 LocalDate.now());
     }
-
     public LoginResponse login(LoginRequest request) {
         // Check OTP verification for patient/pharmacy
         String email = request.getIdentifier();
@@ -132,6 +140,20 @@ public class AuthService {
             });
         }
         try {
+            // Check if admin
+            String identifier = request.getIdentifier();
+            if (identifier != null && identifier.contains("@")) {
+                var adminOpt = adminRepository.findByEmail(identifier);
+                if (adminOpt.isPresent()) {
+                    Admin admin = adminOpt.get();
+                    if (!passwordEncoder.matches(request.getPassword(), admin.getPassword())) {
+                        throw new IllegalStateException("Invalid email or password");
+                    }
+                    AdminUserDetails adminUserDetails = new AdminUserDetails(admin);
+                    String token = jwtService.generateToken(adminUserDetails);
+                    return new LoginResponse("Login successfully", "ADMIN", token);
+                }
+            }
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getIdentifier(), request.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -165,8 +187,16 @@ public class AuthService {
     }
 
     public void resendOtp(String email) {
+        // Check for patient, pharmacy, or doctor
+        boolean found = false;
+        if (patientRepository.existsByEmail(email)) found = true;
+        if (pharmacyRepository.existsByEmail(email)) found = true;
+        if (doctorRepository.findByEmail(email).isPresent()) found = true;
+        if (!found) {
+            throw new IllegalStateException("No registration found for this email.");
+        }
         OtpVerification otp = otpVerificationRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("No registration found for this email."));
+                .orElseThrow(() -> new IllegalStateException("No OTP found for this email."));
         String newOtp = generateOtp();
         otp.setOtp(newOtp);
         otp.setExpiry(LocalDateTime.now().plusMinutes(10));
@@ -189,6 +219,12 @@ public class AuthService {
             PharmacyProfile pharmacy = pharmacyRepository.findByEmail(request.getEmail()).orElseThrow();
             pharmacy.setPassword(passwordEncoder.encode(request.getNewPassword()));
             pharmacyRepository.save(pharmacy);
+            found = true;
+        }
+        if (doctorRepository.findByEmail(request.getEmail()).isPresent()) {
+            DoctorProfile doctor = doctorRepository.findByEmail(request.getEmail()).orElseThrow();
+            doctor.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            doctorRepository.save(doctor);
             found = true;
         }
         if (!found) {

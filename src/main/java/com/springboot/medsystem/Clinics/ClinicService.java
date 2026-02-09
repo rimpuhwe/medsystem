@@ -1,5 +1,6 @@
 package com.springboot.medsystem.Clinics;
 
+import com.springboot.medsystem.DTO.ClinicDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -17,7 +18,11 @@ public class ClinicService {
         return clinicRepository.findAll();
     }
 
-    public Clinic addClinic(Clinic clinic) {
+    public Clinic addClinic(ClinicDto clinicRequest) {
+
+        Clinic  clinic = new Clinic();
+        clinic.setClinicName(clinicRequest.getClinicName());
+        clinic.setServices(clinicRequest.getServices());
 
         return clinicRepository.save(clinic);
     }
