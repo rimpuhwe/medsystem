@@ -2,6 +2,8 @@ package com.springboot.medsystem.Aunthentication;
 
 import com.springboot.medsystem.Patient.PatientRepository;
 import com.springboot.medsystem.Pharmacy.PharmacyRepository;
+import com.springboot.medsystem.Admin.AdminRepository;
+import com.springboot.medsystem.Aunthentication.AdminUserDetails;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,11 +19,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final PatientRepository patientRepository;
     private final PharmacyRepository pharmacyRepository;
+    private final AdminRepository adminRepository;
 
     public CustomUserDetailsService(PatientRepository patientRepository,
-            PharmacyRepository pharmacyRepository) {
+                                    PharmacyRepository pharmacyRepository,
+                                    AdminRepository adminRepository) {
         this.patientRepository = patientRepository;
         this.pharmacyRepository = pharmacyRepository;
+        this.adminRepository = adminRepository;
     }
 
     @Override
@@ -52,6 +57,14 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .password(pharmacy.getPassword()) // stored hashed password
                     .roles(pharmacy.getRole().name())
                     .build();
+        }
+
+        // Try admin
+        var adminOpt = adminRepository.findByEmail(identifier);
+        if (adminOpt.isPresent()) {
+            var admin = adminOpt.get();
+            logger.debug("Admin found: email={}, role={}, passwordHash={}", admin.getEmail(), admin.getRole(), admin.getPassword());
+            return new AdminUserDetails(admin);
         }
 
         logger.warn("User not found with email or phone: {}", identifier);

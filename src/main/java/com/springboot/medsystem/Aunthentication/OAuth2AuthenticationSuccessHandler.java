@@ -33,7 +33,7 @@ public class OAuth2AuthenticationSuccessHandler
         assert oAuth2User != null;
         String token = jwtService.generateTokenFromOAuth(oAuth2User);
 
-        // OPTIONAL: you may persist user here (patient/pharmacy)
+        // you may persist user here (patient/pharmacy)
 
         // Redirect to Swagger with token
         response.sendRedirect(
