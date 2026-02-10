@@ -43,7 +43,7 @@ public class DoctorService {
         doctorProfile.setFullName(doctor.getFullName());
         doctorProfile.setEmail(doctor.getEmail());
         doctorProfile.setService(doctor.getService());
-        doctorProfile.setPhoneNumber(doctor.getPhoneNumber());
+        doctorProfile.setPhone(doctor.getPhone());
         doctorProfile.setRole(com.springboot.medsystem.Enums.Role.DOCTOR);
         // Find clinic by name
         Clinic clinic = clinicRepository.findByClinicName(String.valueOf(doctor.getClinicName()))
