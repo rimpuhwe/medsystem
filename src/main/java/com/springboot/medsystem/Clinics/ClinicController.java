@@ -40,13 +40,6 @@ public class ClinicController {
     }
 
 
-    @GetMapping(params = "name")
-    @PreAuthorize("hasRole('PATIENT')")
-    @Operation(summary = "Get clinic by name", description = "Returns a clinic by name. Accessible by PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
-    public Clinic getClinicByName(@RequestParam String name) {
-        return clinicService.getClinicByName(name);
-    }
-
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

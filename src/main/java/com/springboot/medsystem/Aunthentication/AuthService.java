@@ -59,7 +59,7 @@ public class AuthService {
     }
 
     public RegisterResponse registerPatient(PatientRegisterRequest request) {
-        // Add similar OTP logic for doctor registration if needed
+
         validateUniqueness(request);
         String referenceNumber = generateUniquePatientReferenceNumber();
         PatientProfile patient = new PatientProfile();
@@ -84,7 +84,7 @@ public class AuthService {
         otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
-        // For development: include OTP in response, do not send email
+
         return new RegisterResponse(
                 "Patient registration successful. Use the OTP below to verify your email.",
                 referenceNumber,
@@ -94,7 +94,7 @@ public class AuthService {
     }
 
     public RegisterResponse registerPharmacist(PharmacyRegisterRequest request) {
-        // Add similar OTP logic for pharmacist registration if needed
+
 
         validateUniqueness(request);
 
