@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-
+   
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final PharmacyRepository pharmacyRepository;

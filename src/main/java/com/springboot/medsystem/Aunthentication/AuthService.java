@@ -93,9 +93,8 @@ public class AuthService {
                 LocalDate.now());
     }
 
-    public RegisterResponse registerPharmacist(PharmacyRegisterRequest request) {
 
-
+    public PharmacyResponse registerPharmacist(PharmacyRegisterRequest request) {
         validateUniqueness(request);
 
         PharmacyProfile pharmacy = new PharmacyProfile();
@@ -105,28 +104,27 @@ public class AuthService {
         pharmacy.setGender(request.getGender());
         pharmacy.setPassword(passwordEncoder.encode(request.getPassword()));
         pharmacy.setRole(Role.PHARMACIST);
-
         pharmacy.setPharmacyName(request.getPharmacyName());
         pharmacy.setLicenseNumber(request.getLicenseNumber());
 
-        String username = pharmacy.getEmail() != null ? pharmacy.getEmail() : pharmacy.getPhone();
-        UserDetails userDetails = org.springframework.security.core.userdetails.User
-                .builder()
-                .username(username)
-                .password(pharmacy.getPassword())
-                .roles(pharmacy.getRole().name())
-                .build();
-
-        String token = jwtService.generateToken(userDetails);
-
         pharmacyRepository.save(pharmacy);
 
-        return new RegisterResponse(
-                "Pharmacist registration successful",
-                null, // Pharmacies do NOT get reference numbers
-                token,
-                null,
-                LocalDate.now());
+        // Generate OTP and save
+        String otp = generateOtp();
+        OtpVerification otpVerification = new OtpVerification();
+        otpVerification.setEmail(pharmacy.getEmail());
+        otpVerification.setOtp(otp);
+        otpVerification.setVerified(false);
+        otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
+        otpVerificationRepository.save(otpVerification);
+
+        return PharmacyResponse.builder()
+            .message("Pharmacist registration successful. Use the OTP below to verify your email.")
+            .email(pharmacy.getEmail())
+            .otp(otp)
+            .role(Role.PHARMACIST)
+            .build();
+
     }
     public LoginResponse login(LoginRequest request) {
         // Check OTP verification for patient/pharmacy

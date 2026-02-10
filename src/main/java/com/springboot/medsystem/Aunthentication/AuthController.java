@@ -31,8 +31,8 @@ public class AuthController {
 
     @Operation(summary = "Register a new pharmacy", description = "Registers a new pharmacy/pharmacist in the system.")
     @PostMapping("/register/pharmacy")
-    public ResponseEntity<RegisterResponse> registerPharmacist(@Valid @RequestBody PharmacyRegisterRequest request) {
-        RegisterResponse response = authService.registerPharmacist(request);
+    public ResponseEntity<PharmacyResponse> registerPharmacist(@Valid @RequestBody PharmacyRegisterRequest request) {
+        PharmacyResponse response = authService.registerPharmacist(request);
         return ResponseEntity.ok(response);
     }
 
