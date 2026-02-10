@@ -1,9 +1,10 @@
 package com.springboot.medsystem.Doctor;
 
+
 import com.springboot.medsystem.DTO.DoctorDto;
-import com.springboot.medsystem.DTO.DoctorResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.springboot.medsystem.Aunthentication.OtpVerificationRepository;
 import com.springboot.medsystem.Clinics.Clinic;
 import com.springboot.medsystem.Clinics.ClinicRepository;
 import java.util.List;
@@ -14,11 +15,13 @@ public class DoctorService {
     private final DoctorRepository doctorRepository;
     private final PasswordEncoder passwordEncoder;
     private final ClinicRepository clinicRepository;
+    private final OtpVerificationRepository otpVerificationRepository;
 
-    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, ClinicRepository clinicRepository) {
+    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, ClinicRepository clinicRepository, OtpVerificationRepository otpVerificationRepository) {
         this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.clinicRepository = clinicRepository;
+        this.otpVerificationRepository = otpVerificationRepository;
     }
 
     public List<DoctorProfile> getAllDoctors() {
@@ -32,7 +35,9 @@ public class DoctorService {
     }
 
 
-    public DoctorResponse addDoctor(DoctorDto doctor) {
+
+
+    public DoctorProfile addDoctor(DoctorDto doctor) {
         DoctorProfile doctorProfile = new DoctorProfile();
         doctorProfile.setFullName(doctor.getFullName());
         doctorProfile.setEmail(doctor.getEmail());
@@ -44,9 +49,9 @@ public class DoctorService {
             .orElseThrow(() -> new RuntimeException("Clinic not found: " + doctor.getClinicName()));
         doctorProfile.setClinic(clinic);
         doctorProfile.setPassword(passwordEncoder.encode(doctor.getPassword()));
-        doctorRepository.save(doctorProfile);
+       return doctorRepository.save(doctorProfile);
 
-        return new DoctorResponse();
+
     }
 
     public DoctorProfile getDoctorByEmail(String email) {

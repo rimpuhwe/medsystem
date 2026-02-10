@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -24,8 +26,8 @@ public class DoctorController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
-    @Operation(summary = "Get all doctors", description = "Returns a list of all doctors. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("hasAnyRole('ADMIN' , 'PATIENT')")
+    @Operation(summary = "Get all doctors", description = "Returns a list of all doctors. Accessible by ADMIN only.", security = @SecurityRequirement(name = "bearerAuth"))
     public List<DoctorProfile> getAllDoctors() {
         return doctorService.getAllDoctors();
     }
@@ -46,14 +48,18 @@ public class DoctorController {
     @Operation(summary = "Get own doctor profile", description = "Returns the authenticated doctor's profile. Accessible by DOCTOR.", security = @SecurityRequirement(name = "bearerAuth"))
     public DoctorProfile getMyProfile(Authentication authentication) {
         String email = authentication.getName();
-        return doctorService.getDoctorByEmail(email);
+        DoctorProfile doctor = doctorService.getDoctorByEmail(email);
+        if (!doctor.getEmail().equals(email)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to another doctor's profile");
+        }
+        return doctor;
     }
 
    
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Add a new doctor", description = "Adds a new doctor to the system. Accessible by ADMIN.", security = @SecurityRequirement(name = "bearerAuth"))
-    public DoctorResponse addDoctor(@RequestBody DoctorDto doctor) {
+    public DoctorProfile addDoctor(@RequestBody DoctorDto doctor) {
         return doctorService.addDoctor(doctor);
     }
 }
