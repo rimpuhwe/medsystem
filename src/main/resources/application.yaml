@@ -37,3 +37,4 @@ spring:
 
 server:
   port: ${SERVER_PORT}
+

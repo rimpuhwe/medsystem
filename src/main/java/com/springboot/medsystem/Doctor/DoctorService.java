@@ -2,6 +2,7 @@ package com.springboot.medsystem.Doctor;
 
 
 import com.springboot.medsystem.DTO.DoctorDto;
+import com.springboot.medsystem.DTO.DoctorResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.springboot.medsystem.Aunthentication.OtpVerificationRepository;
@@ -37,7 +38,7 @@ public class DoctorService {
 
 
 
-    public DoctorProfile addDoctor(DoctorDto doctor) {
+    public DoctorResponse addDoctor(DoctorDto doctor) {
         DoctorProfile doctorProfile = new DoctorProfile();
         doctorProfile.setFullName(doctor.getFullName());
         doctorProfile.setEmail(doctor.getEmail());
@@ -49,9 +50,31 @@ public class DoctorService {
             .orElseThrow(() -> new RuntimeException("Clinic not found: " + doctor.getClinicName()));
         doctorProfile.setClinic(clinic);
         doctorProfile.setPassword(passwordEncoder.encode(doctor.getPassword()));
-       return doctorRepository.save(doctorProfile);
+        doctorRepository.save(doctorProfile);
 
+        // Generate OTP
+        String otp = generateOtp();
+        com.springboot.medsystem.Aunthentication.OtpVerification otpVerification = new com.springboot.medsystem.Aunthentication.OtpVerification();
+        otpVerification.setEmail(doctor.getEmail());
+        otpVerification.setOtp(otp);
+        otpVerification.setVerified(false);
+        otpVerification.setExpiry(java.time.LocalDateTime.now().plusMinutes(10));
+        otpVerificationRepository.save(otpVerification);
 
+        // Return DoctorResponse with OTP
+        return com.springboot.medsystem.DTO.DoctorResponse.builder()
+                .Message("Doctor added successfully. Use the OTP below to verify your email.")
+                .email(doctor.getEmail())
+                .otp(otp)
+                .role(com.springboot.medsystem.Enums.Role.DOCTOR)
+                .Timestamp(java.time.LocalDate.now())
+                .build();
+    }
+
+    private String generateOtp() {
+        java.util.Random random = new java.util.Random();
+        int otp = 100000 + random.nextInt(900000);
+        return String.valueOf(otp);
     }
 
     public DoctorProfile getDoctorByEmail(String email) {
