@@ -2,6 +2,7 @@ package com.springboot.medsystem.Aunthentication;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -49,23 +50,25 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/doctors/", "/api/doctors/search").hasAnyRole("ADMIN", "PATIENT")
+                        .requestMatchers("/api/doctors/all-doctors","/api/doctors/search" , "/api/clinic/all" , "/api/clinic/search").hasAnyRole("ADMIN", "PATIENT")
+
                         .requestMatchers("/api/doctors/me").hasRole("DOCTOR")
+                        .requestMatchers("/api/clinic/**").hasRole("ADMIN")
                         .requestMatchers("/api/doctors/**").hasRole("ADMIN")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .anyRequest().authenticated()
                 )
 
-                // IMPORTANT: OAuth2 NEEDS SESSION
+
                 .sessionManagement(sess ->
                         sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
 
-                // JWT for API calls ONLY
+
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // CORRECT OAuth2 CONFIG
+
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo ->
                                 userInfo.userService(customOAuth2UserService)

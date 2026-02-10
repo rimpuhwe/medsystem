@@ -25,9 +25,9 @@ public class DoctorController {
         this.doctorService = doctorService;
     }
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN' , 'PATIENT')")
-    @Operation(summary = "Get all doctors", description = "Returns a list of all doctors. Accessible by ADMIN only.", security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("all-doctors")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
+    @Operation(summary = "Get all doctors", description = "Returns a list of all doctors. Accessible by ADMIN and PATIENT.", security = @SecurityRequirement(name = "bearerAuth"))
     public List<DoctorProfile> getAllDoctors() {
         return doctorService.getAllDoctors();
     }
