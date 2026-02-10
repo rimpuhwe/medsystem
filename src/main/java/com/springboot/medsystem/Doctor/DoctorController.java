@@ -58,8 +58,8 @@ public class DoctorController {
    
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Add a new doctor", description = "Adds a new doctor to the system. Accessible by ADMIN.", security = @SecurityRequirement(name = "bearerAuth"))
-    public DoctorProfile addDoctor(@RequestBody DoctorDto doctor) {
+    @Operation(summary = "Add a new doctor", description = "Adds a new doctor to the system. Accessible by ADMIN. Returns OTP for verification.", security = @SecurityRequirement(name = "bearerAuth"))
+    public DoctorResponse addDoctor(@RequestBody DoctorDto doctor) {
         return doctorService.addDoctor(doctor);
     }
 }
