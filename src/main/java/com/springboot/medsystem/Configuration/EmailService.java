@@ -1,6 +1,8 @@
 package com.springboot.medsystem.Configuration;
 
+import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Patient.PatientProfile;
+import com.springboot.medsystem.Pharmacy.PharmacyProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -70,49 +72,39 @@ public class EmailService {
         }
     }
 
-    public void sendVerificationEmail(Object user, String token) {
-
+    public void sendVerificationEmail(Object user, String otp) {
         String email = null;
         String name = null;
-        if (user instanceof com.springboot.medsystem.DTO.Register) {
-            email = ((com.springboot.medsystem.DTO.Register) user).getEmail();
-            name = ((com.springboot.medsystem.DTO.Register) user).getFullName();
-        } else if (user instanceof com.springboot.medsystem.Pharmacy.PharmacyProfile) {
-            email = ((com.springboot.medsystem.Pharmacy.PharmacyProfile) user).getEmail();
-            name = ((com.springboot.medsystem.Pharmacy.PharmacyProfile) user).getFullName();
-        } else if (user instanceof com.springboot.medsystem.Doctor.DoctorProfile) {
-            email = ((com.springboot.medsystem.Doctor.DoctorProfile) user).getEmail();
-            name = ((com.springboot.medsystem.Doctor.DoctorProfile) user).getFullName();
-        } else if (user PatientProfile) {
-            email = ((com.springboot.medsystem.Patient.PatientProfile) user).getEmail();
-            name = ((com.springboot.medsystem.Patient.PatientProfile) user).getFullName();
+        if (user instanceof PatientProfile) {
+            email =  ((PatientProfile) user).getEmail();
+            name = ((PatientProfile) user).getFullName(); ;
+        } else if (user instanceof PharmacyProfile) {
+            email = ((PharmacyProfile) user).getEmail();
+            name = ((PharmacyProfile) user).getFullName();
+        } else if (user instanceof DoctorProfile) {
+            email = ((DoctorProfile) user).getEmail();
+            name = ((DoctorProfile) user).getFullName();
         }
         if (email == null || name == null) {
             log.error("Cannot send verification email: missing email or name");
             return;
         }
 
-        String html = """
+        String html = String.format("""
                 <html>
-                <body style=\"font-family: Arial, sans-serif;\">
-                    <div style=\"max-width:600px;margin:auto;padding:20px;border:1px solid #ddd;\">
-                        <h2 style=\"color:#4CAF50;\">Email Verification</h2>
+                <body style='font-family: Arial, sans-serif;'>
+                    <div style='max-width:600px;margin:auto;padding:20px;border:1px solid #ddd;'>
+                        <h2 style='color:#4CAF50;'>Email Verification</h2>
                         <p>Hello <strong>%s</strong>,</p>
-                        <p>Please verify your email by clicking the button below:</p>
-                        <div style=\"text-align:center;margin:20px;\">
-                            <a href=\"%s\"
-                               style=\"background:#4CAF50;color:#fff;padding:12px 25px;
-                                      text-decoration:none;border-radius:5px;\">
-                               Verify Email
-                            </a>
+                        <p>Your One-Time Password (OTP) for account verification is:</p>
+                        <div style='text-align:center;margin:20px;'>
+                            <span style='font-size:2em;letter-spacing:8px;background:#f4f4f4;padding:10px 20px;border-radius:5px;border:1px solid #ccc;'>%s</span>
                         </div>
-                        <p>If the button doesn’t work, copy this link:</p>
-                        <p>%s</p>
-                        <small>This link expires in 24 hours.</small>
+                        <p>Enter this OTP in the app to verify your account. This code expires in 10 minutes.</p>
+                        <small>If you did not request this, please ignore this email.</small>
                     </div>
                 </body>
-                </html>
-                """.formatted(name, link, link);
-        sendEmail(email, "Verify Your Email", html);
+                </html>""", name, otp);
+        sendEmail(email, "Your OTP for MedEase Account Verification", html);
     }
 }
