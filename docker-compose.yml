@@ -15,7 +15,7 @@ services:
     build: .
     container_name: medease-application
     ports:
-      - "${SERVER_PORT}:8086"
+      - "${PORT}:8080"
     environment:
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
@@ -24,7 +24,7 @@ services:
       BREVO_API: ${BREVO_API}
       BREVO_MAIL: ${BREVO_MAIL}
       BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
-      SERVER_PORT: ${SERVER_PORT}
+      PORT: ${PORT}
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
       - db
