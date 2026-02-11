@@ -2,6 +2,7 @@ package com.springboot.medsystem.Aunthentication;
 
 import com.springboot.medsystem.Admin.Admin;
 import com.springboot.medsystem.Admin.AdminRepository;
+import com.springboot.medsystem.Configuration.EmailService;
 import com.springboot.medsystem.DTO.*;
 import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Doctor.DoctorRepository;
@@ -27,7 +28,6 @@ import java.util.Random;
 import java.util.UUID;
 
 @Service
-
 public class AuthService {
 
     private final PatientRepository patientRepository;
@@ -38,6 +38,7 @@ public class AuthService {
     private final OtpVerificationRepository otpVerificationRepository;
     private final AdminRepository adminRepository;
     private final DoctorRepository doctorRepository;
+    private final EmailService emailService;
 
     public AuthService(
             PatientRepository patientRepository,
@@ -47,7 +48,8 @@ public class AuthService {
             AuthenticationManager authenticationManager,
             OtpVerificationRepository otpVerificationRepository,
             AdminRepository adminRepository,
-            DoctorRepository doctorRepository) {
+            DoctorRepository doctorRepository,
+            EmailService emailService) {
         this.patientRepository = patientRepository;
         this.pharmacyRepository = pharmacyRepository;
         this.passwordEncoder = passwordEncoder;
@@ -56,10 +58,10 @@ public class AuthService {
         this.otpVerificationRepository = otpVerificationRepository;
         this.adminRepository = adminRepository;
         this.doctorRepository = doctorRepository;
+        this.emailService = emailService;
     }
 
     public RegisterResponse registerPatient(PatientRegisterRequest request) {
-
         validateUniqueness(request);
         String referenceNumber = generateUniquePatientReferenceNumber();
         PatientProfile patient = new PatientProfile();
@@ -84,6 +86,8 @@ public class AuthService {
         otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
+        // Send OTP email
+        emailService.sendVerificationEmail(patient, otp);
 
         return new RegisterResponse(
                 "Patient registration successful. Use the OTP below to verify your email.",
@@ -109,7 +113,6 @@ public class AuthService {
 
         pharmacyRepository.save(pharmacy);
 
-        // Generate OTP and save
         String otp = generateOtp();
         OtpVerification otpVerification = new OtpVerification();
         otpVerification.setEmail(pharmacy.getEmail());
@@ -118,18 +121,19 @@ public class AuthService {
         otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
+        emailService.sendVerificationEmail(pharmacy, otp);
+
         return PharmacyResponse.builder()
-            .message("Pharmacist registration successful. Use the OTP below to verify your email.")
+            .message("Pharmacist registration successful. Use the OTP sent to your email  to validate  your account .")
             .email(pharmacy.getEmail())
             .otp(otp)
             .role(Role.PHARMACIST)
             .build();
-
     }
     public LoginResponse login(LoginRequest request) {
-        // Check OTP verification for patient/pharmacy
+
         String email = request.getIdentifier();
-        // Only check for email, not phone
+
         if (email != null && email.contains("@")) {
             otpVerificationRepository.findByEmail(email).ifPresent(otp -> {
                 if (!otp.isVerified()) {
@@ -185,7 +189,7 @@ public class AuthService {
     }
 
     public void resendOtp(String email) {
-        // Check for patient, pharmacy, or doctor
+
         boolean found = false;
         if (patientRepository.existsByEmail(email)) found = true;
         if (pharmacyRepository.existsByEmail(email)) found = true;

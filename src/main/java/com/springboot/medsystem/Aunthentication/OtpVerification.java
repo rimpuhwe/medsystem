@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 public class OtpVerification {
-    // Getters and setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
