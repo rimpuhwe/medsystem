@@ -15,7 +15,7 @@ jobs:
       BREVO_API: ${{ secrets.BREVO_API }}
       BREVO_MAIL: ${{ secrets.BREVO_MAIL }}
       BREVO_SENDER_NAME: ${{ secrets.BREVO_SENDER_MAIL }}
-      SERVER_PORT: ${{ secrets.SERVER_PORT }}
+      PORT: ${{ secrets.PORT }}
       SPRING_PROFILES_ACTIVE: prod
 
     steps:
