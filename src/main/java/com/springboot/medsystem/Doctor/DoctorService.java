@@ -1,6 +1,8 @@
 package com.springboot.medsystem.Doctor;
 
 
+import com.springboot.medsystem.Aunthentication.OtpVerification;
+import com.springboot.medsystem.Configuration.EmailService;
 import com.springboot.medsystem.DTO.DoctorDto;
 import com.springboot.medsystem.DTO.DoctorResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,12 +19,14 @@ public class DoctorService {
     private final PasswordEncoder passwordEncoder;
     private final ClinicRepository clinicRepository;
     private final OtpVerificationRepository otpVerificationRepository;
+    private final EmailService emailService;
 
-    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, ClinicRepository clinicRepository, OtpVerificationRepository otpVerificationRepository) {
+    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, ClinicRepository clinicRepository, OtpVerificationRepository otpVerificationRepository, EmailService emailService) {
         this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.clinicRepository = clinicRepository;
         this.otpVerificationRepository = otpVerificationRepository;
+        this.emailService = emailService;
     }
 
     public List<DoctorProfile> getAllDoctors() {
@@ -45,25 +49,26 @@ public class DoctorService {
         doctorProfile.setService(doctor.getService());
         doctorProfile.setPhone(doctor.getPhone());
         doctorProfile.setRole(com.springboot.medsystem.Enums.Role.DOCTOR);
-        // Find clinic by name
+
         Clinic clinic = clinicRepository.findByClinicName(String.valueOf(doctor.getClinicName()))
             .orElseThrow(() -> new RuntimeException("Clinic not found: " + doctor.getClinicName()));
         doctorProfile.setClinic(clinic);
         doctorProfile.setPassword(passwordEncoder.encode(doctor.getPassword()));
         doctorRepository.save(doctorProfile);
 
-        // Generate OTP
         String otp = generateOtp();
-        com.springboot.medsystem.Aunthentication.OtpVerification otpVerification = new com.springboot.medsystem.Aunthentication.OtpVerification();
+        OtpVerification otpVerification = new OtpVerification();
         otpVerification.setEmail(doctor.getEmail());
         otpVerification.setOtp(otp);
         otpVerification.setVerified(false);
         otpVerification.setExpiry(java.time.LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
-        // Return DoctorResponse with OTP
+        // Send OTP email
+        emailService.sendVerificationEmail(doctorProfile, otp);
+
         return com.springboot.medsystem.DTO.DoctorResponse.builder()
-                .Message("Doctor added successfully. Use the OTP below to verify your email.")
+                .Message("Doctor added successfully. The doctor must  use the OTP sent in their email to verify  their account.")
                 .email(doctor.getEmail())
                 .otp(otp)
                 .role(com.springboot.medsystem.Enums.Role.DOCTOR)
