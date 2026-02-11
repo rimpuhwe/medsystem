@@ -12,9 +12,9 @@ jobs:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-      MAIL_HOST: ${{ secrets.MAIL_HOST }}
+      BREVO_API: ${{ secrets.BREVO_API }}
+      BREVO_MAIL: ${{ secrets.BREVO_MAIL }}
+      BREVO_SENDER_NAME: ${{ secrets.BREVO_SENDER_MAIL }}
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       SPRING_PROFILES_ACTIVE: prod
 
@@ -35,4 +35,4 @@ jobs:
         run: docker build -t medsystem-app .
 
       - name: Run Docker Compose
-        run: docker-compose up -d
+        run: docker compose up -d
