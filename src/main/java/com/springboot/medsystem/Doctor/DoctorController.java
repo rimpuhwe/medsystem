@@ -74,12 +74,11 @@ public class DoctorController {
 
 
 
-    @Operation(summary = "Get all patients in queue for a doctor", description = "Returns all patients in queue for a specific clinic, service, and doctor.", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Get all patients in queue for a doctor", description = "Returns all patients in queue for a specific clinic for that authorised doctor with the service the patient joined for.", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/queue/doctor")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<QueuePosition>> getAllPatientsInQueueForDoctor(@RequestParam String clinicName, @RequestParam String service, @AuthenticationPrincipal UserDetails userDetails) {
-        String doctorName = userDetails.getUsername();
-        List<QueuePosition> queue = patientService.getAllPatientsInQueueForDoctor(clinicName, service, doctorName);
+    public ResponseEntity<List<QueuePosition>> getAllPatientsInQueueForDoctor(@RequestParam String clinicName, @AuthenticationPrincipal UserDetails userDetails) {
+        List<QueuePosition> queue = patientService.getAllPatientsInQueueForDoctor(clinicName, userDetails);
         return ResponseEntity.ok(queue);
     }
 }
