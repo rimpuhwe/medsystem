@@ -1,5 +1,7 @@
 package com.springboot.medsystem.Doctor;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.springboot.medsystem.Clinics.Clinic;
 import com.springboot.medsystem.Enums.Role;
 import com.springboot.medsystem.Enums.Service;
@@ -25,16 +27,17 @@ public class DoctorProfile {
 
     @ManyToOne
     @JoinColumn(name = "clinic_id")
-    @com.fasterxml.jackson.annotation.JsonBackReference
+    @JsonBackReference
     private Clinic clinic;
-
 
     @Enumerated(EnumType.STRING)
     private Service service;
 
     @Enumerated(EnumType.STRING)
+    @JsonIgnore
     private Role role;
 
+    @JsonIgnore
     private String password;
 
 }

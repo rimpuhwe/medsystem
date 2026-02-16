@@ -5,11 +5,15 @@ import com.springboot.medsystem.Aunthentication.OtpVerification;
 import com.springboot.medsystem.Configuration.EmailService;
 import com.springboot.medsystem.DTO.DoctorDto;
 import com.springboot.medsystem.DTO.DoctorResponse;
+import com.springboot.medsystem.Enums.Role;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.springboot.medsystem.Aunthentication.OtpVerificationRepository;
 import com.springboot.medsystem.Clinics.Clinic;
 import com.springboot.medsystem.Clinics.ClinicRepository;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -48,7 +52,7 @@ public class DoctorService {
         doctorProfile.setEmail(doctor.getEmail());
         doctorProfile.setService(doctor.getService());
         doctorProfile.setPhone(doctor.getPhone());
-        doctorProfile.setRole(com.springboot.medsystem.Enums.Role.DOCTOR);
+        doctorProfile.setRole(Role.DOCTOR);
 
         Clinic clinic = clinicRepository.findByClinicName(String.valueOf(doctor.getClinicName()))
             .orElseThrow(() -> new RuntimeException("Clinic not found: " + doctor.getClinicName()));
@@ -61,7 +65,7 @@ public class DoctorService {
         otpVerification.setEmail(doctor.getEmail());
         otpVerification.setOtp(otp);
         otpVerification.setVerified(false);
-        otpVerification.setExpiry(java.time.LocalDateTime.now().plusMinutes(10));
+        otpVerification.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpVerificationRepository.save(otpVerification);
 
         // Send OTP email
@@ -71,8 +75,8 @@ public class DoctorService {
                 .Message("Doctor added successfully. The doctor must  use the OTP sent in their email to verify  their account.")
                 .email(doctor.getEmail())
                 .otp(otp)
-                .role(com.springboot.medsystem.Enums.Role.DOCTOR)
-                .Timestamp(java.time.LocalDate.now())
+                .role(Role.DOCTOR)
+                .Timestamp(LocalDate.now())
                 .build();
     }
 
