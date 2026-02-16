@@ -124,13 +124,20 @@ public class PatientService {
 
 
     public List<QueuePosition> getAllPatientsInQueueForDoctor(String clinicName, UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new RuntimeException("User not authenticated");
+        }
         String email = userDetails.getUsername();
-        Optional<DoctorProfile> DoctorOpt = doctorRepository.findByEmail(email);
+        Optional<DoctorProfile> doctorOpt = doctorRepository.findByEmail(email);
+        if (doctorOpt.isEmpty()) {
+            throw new RuntimeException("Doctor not found");
+        }
+        DoctorProfile doctor = doctorOpt.get();
         LocalDate today = LocalDate.now();
-        List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicName(clinicName);
+        List<QueueManagement> allForClinic = queueManagementRepository.findByClinic_ClinicName(clinicName);
         List<QueuePosition> result = new ArrayList<>();
-        for (QueueManagement qm : allForService) {
-            if (today.equals(qm.getQueueDate()) && DoctorOpt.get().getFullName().equals(qm.getDoctorName()) && qm.getService().equals(DoctorOpt.get().getService())) {
+        for (QueueManagement qm : allForClinic) {
+            if (today.equals(qm.getQueueDate()) && doctor.getFullName().equals(qm.getDoctorName()) && qm.getService().equalsIgnoreCase(doctor.getService().toString())) {
                 result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()));
             }
         }
