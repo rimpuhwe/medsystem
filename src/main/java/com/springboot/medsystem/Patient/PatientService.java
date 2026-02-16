@@ -5,18 +5,18 @@ import com.springboot.medsystem.Clinics.ClinicService;
 import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
+import com.springboot.medsystem.Doctor.DoctorProfile;
+import com.springboot.medsystem.Doctor.DoctorRepository;
 import com.springboot.medsystem.Queue.QueueManagement;
 import com.springboot.medsystem.Queue.QueueManagementRepository;
 import com.springboot.medsystem.Queue.QueueManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class PatientService {
@@ -24,7 +24,7 @@ public class PatientService {
     private final QueueManagementService queueManagementService;
     private final QueueManagementRepository queueManagementRepository;
     private final ClinicService clinicService;
-    private final com.springboot.medsystem.Doctor.DoctorRepository doctorRepository;
+    private final DoctorRepository doctorRepository;
 
     @Autowired
     public PatientService(PatientRepository patientRepository, ClinicService clinicService, QueueManagementService queueManagementService, QueueManagementRepository queueManagementRepository, com.springboot.medsystem.Doctor.DoctorRepository doctorRepository) {
@@ -51,26 +51,26 @@ public class PatientService {
         PatientProfile patient = patientOpt.get();
         String refNumber = patient.getReferenceNumber();
         String clinicName = joinRequest.getClinicName();
-        String service = joinRequest.getService();
+        String service = joinRequest.getService().toUpperCase();
         String doctorName = joinRequest.getDoctorName();
         LocalDate today = LocalDate.now();
 
         Clinic clinic = clinicService.getClinicByName(clinicName);
-        // Reset queue for this clinic/service if not today
+
         List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicNameAndService(clinicName, service);
         boolean needsReset = allForService.stream().anyMatch(q -> q.getQueueDate() != null && !q.getQueueDate().isEqual(today));
         if (needsReset) {
-            // Remove all old queue entries for this clinic/service
+
             allForService.stream().filter(q -> q.getQueueDate() != null && !q.getQueueDate().isEqual(today)).forEach(queueManagementRepository::delete);
         }
-        // Check if patient already in queue for today
+
         boolean exists = allForService.stream().anyMatch(q -> q.getPatientReferenceNumber().equals(refNumber) && today.equals(q.getQueueDate()));
         if (exists) throw new IllegalStateException("Patient already in queue for this service today");
 
-        // Doctor assignment logic
+
         String assignedDoctorName = doctorName;
         if (assignedDoctorName == null || assignedDoctorName.isEmpty()) {
-            // Find all doctors for this clinic and service
+
             List<com.springboot.medsystem.Doctor.DoctorProfile> doctors = doctorRepository.findAll();
             List<com.springboot.medsystem.Doctor.DoctorProfile> filteredDoctors = new ArrayList<>();
             for (com.springboot.medsystem.Doctor.DoctorProfile doc : doctors) {
@@ -81,9 +81,9 @@ public class PatientService {
             if (filteredDoctors.isEmpty()) {
                 throw new RuntimeException("No doctor available for this clinic and service");
             } else if (filteredDoctors.size() == 1) {
-                assignedDoctorName = filteredDoctors.get(0).getFullName();
+                assignedDoctorName = filteredDoctors.getFirst().getFullName();
             } else {
-                // Assign to doctor with least patients in queue for today
+                // Assign to doctor with the least patients in queue for today
                 int minQueue = Integer.MAX_VALUE;
                 com.springboot.medsystem.Doctor.DoctorProfile selectedDoctor = null;
                 for (com.springboot.medsystem.Doctor.DoctorProfile doc : filteredDoctors) {
@@ -93,6 +93,7 @@ public class PatientService {
                         selectedDoctor = doc;
                     }
                 }
+                assert selectedDoctor != null;
                 assignedDoctorName = selectedDoctor.getFullName();
             }
         }
@@ -101,7 +102,7 @@ public class PatientService {
         int maxPosition = allForService.stream().filter(q -> today.equals(q.getQueueDate())).mapToInt(QueueManagement::getPosition).max().orElse(0);
         int newPosition = maxPosition + 1;
 
-        // Save new queue entry
+
         QueueManagement qm = new QueueManagement();
         qm.setPatientReferenceNumber(refNumber);
         qm.setPosition(newPosition);
@@ -114,31 +115,22 @@ public class PatientService {
         return new QueuePosition(refNumber, newPosition, clinic, service, assignedDoctorName);
     }
 
-    /**
-     * Get all queue positions for a clinic and service.
-     */
-
-    public Map<String, List<QueuePosition>> getClinicQueueStructure(String clinicName) {
-        return queueManagementService.getClinicQueueStructure(clinicName);
-    }
 
     public List<QueuePosition> getServiceQueue(String clinicName, String service) {
         return queueManagementService.getServiceQueue(clinicName, service);
     }
 
 
-    // WebSocket updates are handled elsewhere; no in-memory queue logic needed.
 
 
-    /**
-     * For doctor: get all patients in queue for a clinic, service, and doctor.
-     */
-    public List<QueuePosition> getAllPatientsInQueueForDoctor(String clinicName, String service, String doctorName) {
+    public List<QueuePosition> getAllPatientsInQueueForDoctor(String clinicName, UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        Optional<DoctorProfile> DoctorOpt = doctorRepository.findByEmail(email);
         LocalDate today = LocalDate.now();
-        List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicNameAndService(clinicName, service);
+        List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicName(clinicName);
         List<QueuePosition> result = new ArrayList<>();
         for (QueueManagement qm : allForService) {
-            if (today.equals(qm.getQueueDate()) && doctorName.equals(qm.getDoctorName())) {
+            if (today.equals(qm.getQueueDate()) && DoctorOpt.get().getFullName().equals(qm.getDoctorName()) && qm.getService().equals(DoctorOpt.get().getService())) {
                 result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()));
             }
         }
@@ -159,5 +151,33 @@ public class PatientService {
         patient.setInsuranceNumber(updateRequest.getInsuranceNumber());
         patient.setDateOfBirth(updateRequest.getDateOfBirth());
         return patientRepository.save(patient);
+    }
+
+    public Map<String, Object> getQueueSummary(String clinicName, String service, UserDetails userDetails) {
+
+        String email = userDetails != null ? userDetails.getUsername() : null;
+        if (email == null || patientRepository.findByEmail(email).isEmpty()) {
+            throw new RuntimeException("Patient not authenticated");
+        }
+
+        LocalDate today = LocalDate.now();
+
+        List<QueueManagement> queue = queueManagementRepository.findByClinic_ClinicNameAndServiceAndQueueDate(clinicName, service, today);
+        int totalCount = queue.size();
+
+        List<DoctorProfile> allDoctors = doctorRepository.findAll();
+        List<String> doctorNames = new ArrayList<>();
+        for (DoctorProfile doc : allDoctors) {
+            if (doc.getClinic().getClinicName().equals(clinicName) && doc.getService().toString().equalsIgnoreCase(service)) {
+                doctorNames.add(doc.getFullName());
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("Message", totalCount + " have joined this queue");
+        result.put("service", service);
+        result.put("clinic", clinicName);
+        result.put("doctor", doctorNames);
+        return result;
     }
 }

@@ -1,15 +1,12 @@
 package com.springboot.medsystem.Patient;
 
 import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
+import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
-import com.springboot.medsystem.DTO.RegisterResponse;
-import com.springboot.medsystem.Enums.Role;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,7 +40,7 @@ public class PatientProfileController {
     @Operation(summary = "Update patient profile", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/update-profile")
     public ResponseEntity<PatientProfile> updateProfile(@AuthenticationPrincipal UserDetails userDetails,
-                                                           @RequestBody PatientProfileUpdateRequest updateRequest) {
+                                                        @RequestBody PatientProfileUpdateRequest updateRequest) {
         String email = userDetails.getUsername();
         PatientProfile updated = patientService.updateProfile(email, updateRequest);
         if (updated == null) {
@@ -71,16 +68,12 @@ public class PatientProfileController {
     }
 
 
-    /**
-     * For doctor: get all patients in queue for a clinic, service, and doctor.
-     */
-    @Operation(summary = "Get all patients in queue for a doctor", description = "Returns all patients in queue for a specific clinic, service, and doctor.", security = @SecurityRequirement(name = "bearerAuth"))
-    @GetMapping("/queue/doctor")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<QueuePosition>> getAllPatientsInQueueForDoctor(@RequestParam String clinicName, @RequestParam String service, @AuthenticationPrincipal UserDetails userDetails) {
-        String doctorName = userDetails.getUsername();
-        List<QueuePosition> queue = patientService.getAllPatientsInQueueForDoctor(clinicName, service, doctorName);
-        return ResponseEntity.ok(queue);
+
+    @Operation(summary = "Get queue summary for clinic/service", description = "Returns the total count of patients in the queue for a specific clinic and service, the service, the clinic, and the list of doctors for that clinic/service.", security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("/queue/")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<?> getQueueSummary(@RequestParam String clinicName, @RequestParam String service , @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(patientService.getQueueSummary(clinicName, service, userDetails));
     }
 
 
