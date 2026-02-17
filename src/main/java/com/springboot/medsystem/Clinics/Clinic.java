@@ -1,13 +1,19 @@
 package com.springboot.medsystem.Clinics;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Enums.Service;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.time.LocalDate;
+import com.springboot.medsystem.Queue.QueueManagement;
 
 @Entity
 @AllArgsConstructor
@@ -28,6 +34,23 @@ public class Clinic {
     private Set<Service> services;
 
     @OneToMany(mappedBy = "clinic")
-    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @JsonManagedReference
     private List<DoctorProfile> doctors;
+
+    @OneToMany(mappedBy = "clinic")
+    @JsonIgnore
+    private List<QueueManagement> queueManagement;
+
+    @JsonProperty("queueManagementByService")
+    public Map<String, List<QueueManagement>> getTodayQueueManagementByService() {
+        LocalDate today = LocalDate.now();
+        Map<String, List<QueueManagement>> serviceMap = new HashMap<>();
+        if (queueManagement == null) return serviceMap;
+        for (QueueManagement qm : queueManagement) {
+            if (qm.getQueueDate() != null && qm.getQueueDate().isEqual(today)) {
+                serviceMap.computeIfAbsent(qm.getService(), k -> new ArrayList<>()).add(qm);
+            }
+        }
+        return serviceMap;
+    }
 }

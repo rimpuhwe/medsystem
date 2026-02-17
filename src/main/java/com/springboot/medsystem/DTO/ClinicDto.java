@@ -20,4 +20,5 @@ public class ClinicDto {
     @CollectionTable(name = "clinic_services", joinColumns = @JoinColumn(name = "clinic_id"))
     @Column(name = "service")
     private Set<Service> services;
+
 }

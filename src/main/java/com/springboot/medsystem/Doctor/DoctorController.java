@@ -2,15 +2,24 @@ package com.springboot.medsystem.Doctor;
 
 import com.springboot.medsystem.DTO.DoctorDto;
 import com.springboot.medsystem.DTO.DoctorResponse;
+import com.springboot.medsystem.DTO.QueuePosition;
+import com.springboot.medsystem.Patient.PatientRepository;
+import com.springboot.medsystem.Patient.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import com.springboot.medsystem.DTO.ConsultationRequest;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 
 @RestController
@@ -20,9 +29,11 @@ import java.util.List;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final PatientService patientService;
 
-    public DoctorController(DoctorService doctorService) {
+    public DoctorController(DoctorService doctorService, PatientService patientService) {
         this.doctorService = doctorService;
+        this.patientService = patientService;
     }
 
     @GetMapping("all-doctors")
@@ -62,4 +73,34 @@ public class DoctorController {
     public DoctorResponse addDoctor(@RequestBody DoctorDto doctor) {
         return doctorService.addDoctor(doctor);
     }
+
+
+
+
+    @Operation(summary = "Get all patients in queue for a doctor", description = "Returns all patients in queue for a specific clinic for that authorised doctor with the service the patient joined for.", security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("/queue/doctor")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<List<QueuePosition>> getAllPatientsInQueueForDoctor(@RequestParam String clinicName, @AuthenticationPrincipal UserDetails userDetails) {
+        List<QueuePosition> queue = patientService.getAllPatientsInQueueForDoctor(clinicName, userDetails);
+        return ResponseEntity.ok(queue);
+    }
+
+    @PostMapping("/queue/call")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Doctor calls next patient in queue", description = "Doctor calls the next patient in the queue for their clinic and service.", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<String> callNextPatient(@AuthenticationPrincipal UserDetails userDetails) {
+        doctorService.callNextPatient(userDetails);
+        return ResponseEntity.ok("Next patient called and status updated.");
+    }
+    @PostMapping("/consultation")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Add consultation for patient", description = "Doctor adds diagnosis, medicines, chronic diseases, and allergies for a patient by reference number.", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<String> addConsultation(
+            @RequestParam String patientReferenceNumber,
+            @RequestBody ConsultationRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        doctorService.addConsultation(patientReferenceNumber,request, userDetails);
+        return ResponseEntity.ok("Consultation saved for patient.");
+    }
+
 }

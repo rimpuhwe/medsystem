@@ -189,7 +189,6 @@ public class AuthService {
     }
 
     public void resendOtp(String email) {
-
         boolean found = false;
         if (patientRepository.existsByEmail(email)) found = true;
         if (pharmacyRepository.existsByEmail(email)) found = true;

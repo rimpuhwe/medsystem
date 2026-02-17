@@ -50,9 +50,12 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/doctors/all-doctors","/api/doctors/search" , "/api/clinic/all" , "/api/clinic/search").hasAnyRole("ADMIN", "PATIENT")
-
-                        .requestMatchers("/api/doctors/me").hasRole("DOCTOR")
+                        // Allow ADMIN and PATIENT for these specific endpoints
+                        .requestMatchers("/api/doctors/all-doctors", "/api/doctors/search").hasAnyRole("ADMIN", "PATIENT")
+                        .requestMatchers("/api/clinic/all", "/api/clinic/search").hasAnyRole("ADMIN", "PATIENT")
+                        // Doctor-specific endpoints
+                        .requestMatchers("/api/doctors/me", "/api/doctors/queue/doctor" , "/api/doctors/queue/call", "/api/doctors/consultation").hasRole("DOCTOR")
+                        // General admin-only for other doctor/clinic endpoints
                         .requestMatchers("/api/clinic/**").hasRole("ADMIN")
                         .requestMatchers("/api/doctors/**").hasRole("ADMIN")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
