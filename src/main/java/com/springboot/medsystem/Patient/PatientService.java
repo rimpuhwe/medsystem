@@ -2,6 +2,8 @@ package com.springboot.medsystem.Patient;
 
 import com.springboot.medsystem.Clinics.Clinic;
 import com.springboot.medsystem.Clinics.ClinicService;
+import com.springboot.medsystem.Consultation.Consultation;
+import com.springboot.medsystem.Consultation.ConsultationRepository;
 import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
@@ -16,7 +18,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PatientService {
@@ -25,14 +29,57 @@ public class PatientService {
     private final QueueManagementRepository queueManagementRepository;
     private final ClinicService clinicService;
     private final DoctorRepository doctorRepository;
+    private final ConsultationRepository consultationRepository;
 
     @Autowired
-    public PatientService(PatientRepository patientRepository, ClinicService clinicService, QueueManagementService queueManagementService, QueueManagementRepository queueManagementRepository, com.springboot.medsystem.Doctor.DoctorRepository doctorRepository) {
+    public PatientService(PatientRepository patientRepository, ClinicService clinicService, QueueManagementService queueManagementService, QueueManagementRepository queueManagementRepository, com.springboot.medsystem.Doctor.DoctorRepository doctorRepository, ConsultationRepository consultationRepository) {
         this.patientRepository = patientRepository;
         this.queueManagementService = queueManagementService;
         this.queueManagementRepository = queueManagementRepository;
         this.clinicService = clinicService;
         this.doctorRepository = doctorRepository;
+        this.consultationRepository = consultationRepository;
+    }
+    public Map<String, Object> getMedicalHistoryAndConditions(String email, LocalDate startDate, LocalDate endDate) {
+        Optional<PatientProfile> patientOpt = getProfileByEmail(email);
+        if (patientOpt.isEmpty()) {
+            return null;
+        }
+        PatientProfile patient = patientOpt.get();
+        String refNumber = patient.getReferenceNumber();
+        List<Consultation> consultations = consultationRepository.findByPatientReferenceNumber(refNumber);
+        // Filter by date range if provided
+        if (startDate != null && endDate != null) {
+            consultations = consultations.stream()
+                .filter(c -> c.getConsultationDate() != null &&
+                    !c.getConsultationDate().toLocalDate().isBefore(startDate) &&
+                    !c.getConsultationDate().toLocalDate().isAfter(endDate))
+                .toList();
+        }
+        // Collect all unique chronic diseases and allergies from consultations
+        List<String> chronicDiseases = consultations.stream()
+                .flatMap(c -> c.getChronicDiseases() != null ? c.getChronicDiseases().stream() : java.util.stream.Stream.empty())
+                .distinct().collect(Collectors.toList());
+        List<String> allergies = consultations.stream()
+                .flatMap(c -> c.getAllergies() != null ? c.getAllergies().stream() : java.util.stream.Stream.empty())
+                .distinct().collect(Collectors.toList());
+        // Format medical history
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<Object> medicalHistory = consultations.stream().map(c -> {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("date", c.getConsultationDate() != null ? c.getConsultationDate().format(formatter) : null);
+            entry.put("Doctor", c.getDoctorName());
+            entry.put("diagnosed", c.getDiagnosis());
+            entry.put("prescribed", c.getMedicines());
+            // Clinic name is not stored in Consultation, so left blank or can be enhanced if needed
+            entry.put("clinic", "");
+            return entry;
+        }).collect(Collectors.toList());
+        Map<String, Object> result = new HashMap<>();
+        result.put("chronicDiseases", chronicDiseases);
+        result.put("allergies", allergies);
+        result.put("medical-history", medicalHistory);
+        return result;
     }
 
     public Optional<PatientProfile> getProfileByEmail(String email) {

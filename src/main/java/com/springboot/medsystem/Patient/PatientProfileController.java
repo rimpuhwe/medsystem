@@ -14,15 +14,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import com.springboot.medsystem.Consultation.ConsultationRepository;
-import com.springboot.medsystem.Consultation.Consultation;
 import org.springframework.format.annotation.DateTimeFormat;
-import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/patient")
@@ -30,48 +25,22 @@ import java.util.stream.Collectors;
 
 public class PatientProfileController {
     private final PatientService patientService;
-    private final ConsultationRepository consultationRepository;
-
-    public PatientProfileController(PatientService patientService, ConsultationRepository consultationRepository) {
+    public PatientProfileController(PatientService patientService) {
         this.patientService = patientService;
-        this.consultationRepository = consultationRepository;
     }
 
-    @Operation(summary = "Get medical history and conditions", description = "Returns the patient's chronic diseases, allergies, and medical history.", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Get medical history and conditions", description = "Returns the patient's chronic diseases, allergies, and medical history. Optionally filter by start and end date.", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/medical-history")
     @PreAuthorize("hasRole('PATIENT')")
-    public ResponseEntity<?> getMedicalHistory(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> getMedicalHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         String email = userDetails.getUsername();
-        Optional<PatientProfile> patientOpt = patientService.getProfileByEmail(email);
-        if (patientOpt.isEmpty()) {
+        var result = patientService.getMedicalHistoryAndConditions(email, startDate, endDate);
+        if (result == null) {
             return ResponseEntity.notFound().build();
         }
-        PatientProfile patient = patientOpt.get();
-        String refNumber = patient.getReferenceNumber();
-        List<Consultation> consultations = consultationRepository.findByPatientReferenceNumber(refNumber);
-        // Collect all unique chronic diseases and allergies from consultations
-        List<String> chronicDiseases = consultations.stream()
-                .flatMap(c -> c.getChronicDiseases() != null ? c.getChronicDiseases().stream() : java.util.stream.Stream.empty())
-                .distinct().collect(Collectors.toList());
-        List<String> allergies = consultations.stream()
-                .flatMap(c -> c.getAllergies() != null ? c.getAllergies().stream() : java.util.stream.Stream.empty())
-                .distinct().collect(Collectors.toList());
-        // Format medical history
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        List<Object> medicalHistory = consultations.stream().map(c -> {
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("date", c.getConsultationDate() != null ? c.getConsultationDate().format(formatter) : null);
-            entry.put("Doctor", c.getDoctorName());
-            entry.put("diagnosed", c.getDiagnosis());
-            entry.put("prescribed", c.getMedicines());
-            // Clinic name is not stored in Consultation, so left blank or can be enhanced if needed
-            entry.put("clinic", "");
-            return entry;
-        }).collect(Collectors.toList());
-        Map<String, Object> result = new HashMap<>();
-        result.put("chronicDiseases", chronicDiseases);
-        result.put("allergies", allergies);
-        result.put("medical-history", medicalHistory);
         return ResponseEntity.ok(result);
     }
 
