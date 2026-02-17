@@ -24,7 +24,7 @@ public class QueueManagementService {
         for (QueueManagement qm : allQueues) {
             if (today.equals(qm.getQueueDate())) {
                 serviceMap.computeIfAbsent(qm.getService(), k -> new ArrayList<>())
-                    .add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()));
+                    .add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName(),qm.getStatus()));
             }
         }
         // Sort each service queue by position
@@ -38,7 +38,7 @@ public class QueueManagementService {
         LocalDate today = LocalDate.now();
         List<QueueManagement> queue = queueManagementRepository.findByClinic_ClinicNameAndServiceAndQueueDate(clinicName, service, today);
         return queue.stream()
-            .map(qm -> new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()))
+            .map(qm -> new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName(), qm.getStatus()))
             .collect(Collectors.toList());
     }
 }
