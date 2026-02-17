@@ -1,6 +1,7 @@
 package com.springboot.medsystem.DTO;
 
 import com.springboot.medsystem.Clinics.Clinic;
+import com.springboot.medsystem.Enums.QueueStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,5 +19,7 @@ public class QueuePosition {
 
     private String service;
     private String doctorName;
+    @Enumerated(EnumType.STRING)
+    private QueueStatus status;
 
 }
