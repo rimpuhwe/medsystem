@@ -7,8 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Set;
-import java.util.List;
-import com.springboot.medsystem.Queue.QueueManagement;
 
 @Data
 @AllArgsConstructor
@@ -23,5 +21,4 @@ public class ClinicDto {
     @Column(name = "service")
     private Set<Service> services;
 
-    private List<QueueManagement> queueManagement;
 }
