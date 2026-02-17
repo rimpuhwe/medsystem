@@ -134,10 +134,11 @@ public class PatientService {
         }
         DoctorProfile doctor = doctorOpt.get();
         LocalDate today = LocalDate.now();
-        List<QueueManagement> allForClinic = queueManagementRepository.findByClinic_ClinicName(clinicName);
+        // Only show patients in the same clinic and service as the doctor
+        List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicNameAndService(clinicName, doctor.getService().toString());
         List<QueuePosition> result = new ArrayList<>();
-        for (QueueManagement qm : allForClinic) {
-            if (today.equals(qm.getQueueDate()) && doctor.getFullName().equals(qm.getDoctorName()) && qm.getService().equalsIgnoreCase(doctor.getService().toString())) {
+        for (QueueManagement qm : allForService) {
+            if (today.equals(qm.getQueueDate())) {
                 result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()));
             }
         }
