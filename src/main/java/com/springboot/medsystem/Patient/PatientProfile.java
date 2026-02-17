@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -26,4 +27,10 @@ public class PatientProfile extends Profile {
     private Date dateOfBirth;
 
     private String referenceNumber;
+
+    @ElementCollection
+    private List<String> chronicDiseases;
+
+    @ElementCollection
+    private List<String> allergies;
 }

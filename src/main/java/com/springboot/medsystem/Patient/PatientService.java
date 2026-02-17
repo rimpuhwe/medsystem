@@ -7,11 +7,11 @@ import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
 import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Doctor.DoctorRepository;
+import com.springboot.medsystem.Enums.QueueStatus;
 import com.springboot.medsystem.Queue.QueueManagement;
 import com.springboot.medsystem.Queue.QueueManagementRepository;
 import com.springboot.medsystem.Queue.QueueManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -102,6 +102,8 @@ public class PatientService {
         int maxPosition = allForService.stream().filter(q -> today.equals(q.getQueueDate())).mapToInt(QueueManagement::getPosition).max().orElse(0);
         int newPosition = maxPosition + 1;
 
+        QueueStatus status = QueueStatus.WAITING;
+
 
         QueueManagement qm = new QueueManagement();
         qm.setPatientReferenceNumber(refNumber);
@@ -110,9 +112,10 @@ public class PatientService {
         qm.setService(service);
         qm.setDoctorName(assignedDoctorName);
         qm.setQueueDate(today);
+        qm.setStatus(status);
         queueManagementRepository.save(qm);
 
-        return new QueuePosition(refNumber, newPosition, clinic, service, assignedDoctorName);
+        return new QueuePosition(refNumber, newPosition, clinic, service, assignedDoctorName , status);
     }
 
 
@@ -139,7 +142,7 @@ public class PatientService {
         List<QueuePosition> result = new ArrayList<>();
         for (QueueManagement qm : allForService) {
             if (today.equals(qm.getQueueDate())) {
-                result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName()));
+                result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName() , qm.getStatus()));
             }
         }
         return result;
