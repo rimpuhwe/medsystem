@@ -1,5 +1,7 @@
 package com.springboot.medsystem.Queue;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.springboot.medsystem.Enums.QueueStatus;
 import com.springboot.medsystem.Clinics.Clinic;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,12 +22,15 @@ public class QueueManagement {
     private String patientReferenceNumber;
     private int position;
     @ManyToOne
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     private Clinic clinic;
 
     private String service;
     private String doctorName;
 
     private LocalDate queueDate;
+
+    @Enumerated(EnumType.STRING)
+    private QueueStatus status;
 
 }

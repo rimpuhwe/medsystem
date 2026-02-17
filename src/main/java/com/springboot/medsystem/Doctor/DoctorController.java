@@ -1,3 +1,4 @@
+
 package com.springboot.medsystem.Doctor;
 
 import com.springboot.medsystem.DTO.DoctorDto;
@@ -81,4 +82,13 @@ public class DoctorController {
         List<QueuePosition> queue = patientService.getAllPatientsInQueueForDoctor(clinicName, userDetails);
         return ResponseEntity.ok(queue);
     }
+
+    @PostMapping("/queue/call")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Doctor calls next patient in queue", description = "Doctor calls the next patient in the queue for their clinic and service.", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<String> callNextPatient(@AuthenticationPrincipal UserDetails userDetails) {
+        doctorService.callNextPatient(userDetails);
+        return ResponseEntity.ok("Next patient called and status updated.");
+    }
+
 }

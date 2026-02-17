@@ -5,7 +5,11 @@ import com.springboot.medsystem.Aunthentication.OtpVerification;
 import com.springboot.medsystem.Configuration.EmailService;
 import com.springboot.medsystem.DTO.DoctorDto;
 import com.springboot.medsystem.DTO.DoctorResponse;
+import com.springboot.medsystem.Enums.QueueStatus;
 import com.springboot.medsystem.Enums.Role;
+import com.springboot.medsystem.Queue.QueueManagement;
+import com.springboot.medsystem.Queue.QueueManagementRepository;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.springboot.medsystem.Aunthentication.OtpVerificationRepository;
@@ -24,13 +28,17 @@ public class DoctorService {
     private final ClinicRepository clinicRepository;
     private final OtpVerificationRepository otpVerificationRepository;
     private final EmailService emailService;
+    private final QueueManagementRepository queueManagementRepository;
 
-    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, ClinicRepository clinicRepository, OtpVerificationRepository otpVerificationRepository, EmailService emailService) {
+    public DoctorService(DoctorRepository doctorRepository, PasswordEncoder passwordEncoder,
+                         ClinicRepository clinicRepository, OtpVerificationRepository otpVerificationRepository,
+                         EmailService emailService , QueueManagementRepository queueManagementRepository) {
         this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.clinicRepository = clinicRepository;
         this.otpVerificationRepository = otpVerificationRepository;
         this.emailService = emailService;
+        this.queueManagementRepository = queueManagementRepository;
     }
 
     public List<DoctorProfile> getAllDoctors() {
@@ -89,5 +97,32 @@ public class DoctorService {
     public DoctorProfile getDoctorByEmail(String email) {
         return doctorRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Doctor not found"));
     }
+
+    public void callNextPatient(UserDetails userDetails) {
+        if (userDetails == null) throw new RuntimeException("Doctor not authenticated");
+        String email = userDetails.getUsername();
+        DoctorProfile doctor = doctorRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Doctor not found"));
+        String clinicName = doctor.getClinic().getClinicName();
+        String service = doctor.getService().toString();
+        LocalDate today = LocalDate.now();
+        List<QueueManagement> queue = queueManagementRepository.findByClinic_ClinicNameAndServiceAndQueueDate(clinicName, service, today);
+        QueueManagement nextPatient = queue.stream()
+                .filter(q -> q.getStatus() == QueueStatus.WAITING)
+                .min(java.util.Comparator.comparingInt(QueueManagement::getPosition))
+                .orElse(null);
+        if (nextPatient == null) {
+            throw new RuntimeException("No patient waiting in queue for your service");
+        }
+        nextPatient.setStatus(QueueStatus.IN_PROGRESS);
+        queueManagementRepository.save(nextPatient);
+        for (QueueManagement q : queue) {
+            if (q.getPosition() > nextPatient.getPosition()) {
+                q.setPosition(q.getPosition() - 1);
+                queueManagementRepository.save(q);
+            }
+        }
+
+    }
+
 
 }
