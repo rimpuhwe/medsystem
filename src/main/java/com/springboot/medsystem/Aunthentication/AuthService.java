@@ -73,6 +73,8 @@ public class AuthService {
         patient.setRole(Role.PATIENT);
         patient.setInsurance(request.getInsurance());
         patient.setInsuranceNumber(request.getInsuranceNumber());
+        patient.setInsuranceHolder(request.getInsuranceHolder());
+        patient.setHolderEmployer(request.getHolderEmployer());
         patient.setDateOfBirth(request.getDateOfBirth());
         patient.setReferenceNumber(referenceNumber);
         patientRepository.save(patient);

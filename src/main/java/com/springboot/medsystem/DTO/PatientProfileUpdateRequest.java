@@ -12,5 +12,6 @@ public class PatientProfileUpdateRequest {
     private Gender gender;
     private Insurance insurance;
     private String insuranceNumber;
-    private Date dateOfBirth;
+    private String insuranceHolder;
+    private String holderEmployer;
 }
