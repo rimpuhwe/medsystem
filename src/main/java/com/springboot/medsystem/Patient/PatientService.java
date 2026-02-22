@@ -207,8 +207,8 @@ public class PatientService {
         patient.setGender(updateRequest.getGender());
         patient.setInsurance(updateRequest.getInsurance());
         patient.setInsuranceNumber(updateRequest.getInsuranceNumber());
-        patient.setInsuranceHolder(updateRequest.getInsuranceHolder);
-        patient.setHolderEmployer(updateRequest.getHolderEmployer);
+        patient.setInsuranceHolder(updateRequest.getInsuranceHolder());
+        patient.setHolderEmployer(updateRequest.getHolderEmployer());
 
         return patientRepository.save(patient);
     }
