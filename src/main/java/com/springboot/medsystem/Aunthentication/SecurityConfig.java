@@ -38,7 +38,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/oauth2/**",
@@ -59,19 +59,24 @@ public class SecurityConfig {
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .anyRequest().authenticated()
                 )
-
-
                 .sessionManagement(sess ->
                         sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
-
-
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-
-
                 .authenticationProvider(authenticationProvider())
                 .build();
     }
+        @Bean
+        public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+                org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+                configuration.addAllowedOriginPattern("*");
+                configuration.addAllowedMethod("*");
+                configuration.addAllowedHeader("*");
+                configuration.setAllowCredentials(true);
+                org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
