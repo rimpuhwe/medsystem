@@ -18,22 +18,5 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: 74338890698-j2gqo7avn901mjqse8uj8kbu9es3sjrp.apps.googleusercontent.com
-            client-secret: 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
-            scope:
-              - email
-              - profile
-        provider:
-          google:
-            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-            token-uri: https://oauth2.googleapis.com/token
-            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-            user-name-attribute: sub
-
 server:
   port: ${PORT:8080}

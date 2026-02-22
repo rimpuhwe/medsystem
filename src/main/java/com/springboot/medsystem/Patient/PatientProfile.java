@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 
@@ -24,6 +25,11 @@ public class PatientProfile extends Profile {
     private Insurance insurance;
 
     private String insuranceNumber;
+
+    private String insuranceHolder;
+
+    private String HolderEmployer;
+
     private Date dateOfBirth;
 
     private String referenceNumber;

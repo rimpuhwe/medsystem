@@ -17,7 +17,7 @@ import lombok.Setter;
 public class Profile {
 
     protected String fullName;
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     protected String email;
     @Column(unique = true)
     protected String phone;

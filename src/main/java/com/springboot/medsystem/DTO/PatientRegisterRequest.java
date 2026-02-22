@@ -21,4 +21,8 @@ public class PatientRegisterRequest extends RegisterRequest{
     private Insurance insurance;
 
     private String insuranceNumber;
+
+    private String insuranceHolder;
+
+    private String holderEmployer;
 }
