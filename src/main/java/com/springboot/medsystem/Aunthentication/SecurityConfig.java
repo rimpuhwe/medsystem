@@ -71,7 +71,7 @@ public class SecurityConfig {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 
 
-        configuration.setAllowedOrigins(List.of("https://digitalhealthcaresystem-4nsi.onrender.com/"));
+        configuration.setAllowedOrigins(List.of("https://medsystem-frontend.vercel.app/"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
