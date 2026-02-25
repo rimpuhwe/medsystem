@@ -6,9 +6,9 @@ spring:
   application:
     name: medsystem
   datasource:
-    password: ${DB_PASSWORD}
-    username: ${DB_USERNAME}
-    url: ${DB_URL}
+    password: Pasca789@
+    username: postgres
+    url: jdbc:postgresql://localhost:5432/Med_ease
     driver-class-name: org.postgresql.Driver
   jpa:
     properties:
@@ -17,6 +17,9 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  jwt:
+    secret: mysupersecurejwtsecretkeythatislongenough123
+
 
 server:
-  port: ${PORT:8080}
+  port: 8080
