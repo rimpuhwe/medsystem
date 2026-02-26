@@ -8,7 +8,7 @@ spring:
   datasource:
     password: ${DB_PASSWORD}
     username: ${DB_USERNAME}
-    url: ${DB_URL}
+    url: jdbc:postgresql://localhost:5432/Med_ease
     driver-class-name: org.postgresql.Driver
   jpa:
     properties:
@@ -20,3 +20,4 @@ spring:
 
 server:
   port: ${PORT:8080}
+

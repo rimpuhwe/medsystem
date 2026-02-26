@@ -3,6 +3,7 @@ package com.springboot.medsystem.Patient;
 import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
+import com.springboot.medsystem.DTO.PrescriptionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -65,6 +66,14 @@ public class PatientProfileController {
         return ResponseEntity.ok(updated);
     }
 
+    @Operation(summary = "Get active prescriptions for patient", security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("/prescriptions")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<List<PrescriptionResponse>> getActivePrescriptions(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        return ResponseEntity.ok(patientService.getActivePrescriptionsForPatient(email));
+    }
+
 
     @Operation(summary = "Join clinic/service queue", description = "Join the queue for a specific clinic and service. Provide clinic name, service (capitalized), and optional doctor name. Returns your queue position, updated in real time.", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/queue/join")
@@ -90,6 +99,13 @@ public class PatientProfileController {
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<?> getQueueSummary(@RequestParam String clinicName, @RequestParam String service , @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(patientService.getQueueSummary(clinicName, service, userDetails));
+    }
+
+    @Operation(summary = "Get the patient profile for the doctors and pharmacist" , description = "this return the patient profile for the doctors and the pharmacist so that they can know the patient life conditionn")
+    @GetMapping("/profile-by-reference")
+    @PreAuthorize("hasAnyRole('DOCTOR','PHARMACIST')")
+    public ResponseEntity<PatientProfile> getPatientProfile(@AuthenticationPrincipal UserDetails userDetails, @RequestParam String referenceNumber) {
+        return ResponseEntity.ok(patientService.getPatientByReferenceNumber(referenceNumber));
     }
 
 
