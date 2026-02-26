@@ -9,4 +9,5 @@ public class ConsultationRequest {
     private List<String> medicines;
     private List<String> chronicDiseases;
     private List<String> allergies;
+    private List<PrescriptionItemDto> prescriptionItems;
 }

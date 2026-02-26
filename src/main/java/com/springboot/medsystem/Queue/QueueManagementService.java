@@ -38,6 +38,7 @@ public class QueueManagementService {
         LocalDate today = LocalDate.now();
         List<QueueManagement> queue = queueManagementRepository.findByClinic_ClinicNameAndServiceAndQueueDate(clinicName, service, today);
         return queue.stream()
+            .filter(qm -> qm.getStatus() != com.springboot.medsystem.Enums.QueueStatus.SERVED)
             .map(qm -> new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName(), qm.getStatus()))
             .collect(Collectors.toList());
     }

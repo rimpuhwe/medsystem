@@ -1,17 +1,19 @@
 package com.springboot.medsystem.DTO;
 
+import com.springboot.medsystem.Enums.PrescriptionStatus;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PrescriptionRequest {
-    private String patientName;
+public class PrescriptionItemDto {
     private String medicineName;
-    private Integer quantity;
     private String dosage;
-    private String notes;
+    private String frequency;
+    private String duration;
+    private String note;
+    private PrescriptionStatus status;
 }
+

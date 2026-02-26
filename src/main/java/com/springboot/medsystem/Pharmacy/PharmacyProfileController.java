@@ -126,6 +126,14 @@ public class PharmacyProfileController {
         return ResponseEntity.ok(pharmacyService.dispensePrescription(userDetails.getUsername(), prescriptionId));
     }
 
+    @PostMapping("/prescriptions/{prescriptionId}/items/{itemIndex}/dispense")
+    @Operation(summary = "Dispense a single medicine from a prescription", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<DispenseRecordResponse> dispenseItem(@AuthenticationPrincipal UserDetails userDetails,
+                                                               @PathVariable Long prescriptionId,
+                                                               @PathVariable int itemIndex) {
+        return ResponseEntity.ok(pharmacyService.dispensePrescriptionItem(userDetails.getUsername(), prescriptionId, itemIndex));
+    }
+
     @GetMapping("/records")
     @Operation(summary = "List dispensing records (optional referenceNumber filter)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<List<DispenseRecordResponse>> listRecords(@AuthenticationPrincipal UserDetails userDetails,

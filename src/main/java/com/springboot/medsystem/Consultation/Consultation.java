@@ -16,9 +16,17 @@ public class Consultation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Metadata to link consultation to patient and doctor
     private String patientReferenceNumber;
     private String doctorName;
+
     private String diagnosis;
+
+    // Free-form summary of prescribed medicines for this consultation
+    @ElementCollection
+    private List<String> prescriptionItem;
+
+    // Legacy field used by existing history logic; kept for backward compatibility
     @ElementCollection
     private List<String> medicines;
     @ElementCollection

@@ -13,6 +13,7 @@ import com.springboot.medsystem.Patient.PatientRepository;
 import com.springboot.medsystem.Pharmacy.DispenseRecord;
 import com.springboot.medsystem.Pharmacy.DispenseRecordRepository;
 import com.springboot.medsystem.prescription.Prescription;
+import com.springboot.medsystem.prescription.PrescriptionItem;
 import com.springboot.medsystem.prescription.PrescriptionRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -159,27 +160,16 @@ public class PharmacyService {
         List<Prescription> prescriptions;
         if (referenceNumber != null && !referenceNumber.isBlank()) {
             prescriptions = pendingOnly
-                    ? prescriptionRepository.findByPharmacistEmailAndPatientReferenceNumberAndDispensedFalse(pharmacistEmail, referenceNumber.trim())
-                    : prescriptionRepository.findByPharmacistEmailAndPatientReferenceNumber(pharmacistEmail, referenceNumber.trim());
+                    ? prescriptionRepository.findByPatientReferenceNumberAndStatus(referenceNumber.trim(), com.springboot.medsystem.Enums.PrescriptionStatus.ACTIVE)
+                    : prescriptionRepository.findByPatientReferenceNumber(referenceNumber.trim());
         } else {
             prescriptions = pendingOnly
-                    ? prescriptionRepository.findByPharmacistEmailAndDispensedFalse(pharmacistEmail)
-                    : prescriptionRepository.findByPharmacistEmail(pharmacistEmail);
+                    ? prescriptionRepository.findByStatus(com.springboot.medsystem.Enums.PrescriptionStatus.ACTIVE)
+                    : prescriptionRepository.findAll();
         }
 
         return prescriptions.stream()
-                .map(p -> new PrescriptionResponse(
-                        p.getId(),
-                        p.getPatientReferenceNumber(),
-                        p.getPatientName(),
-                        p.getMedicineName(),
-                        p.getQuantity(),
-                        p.getDosage(),
-                        p.getNotes(),
-                        p.getPrescribedAt(),
-                        p.getDispensed(),
-                        pharmacistEmail
-                ))
+                .map(this::toPrescriptionResponse)
                 .toList();
     }
 
@@ -188,14 +178,14 @@ public class PharmacyService {
         var pharmacist = pharmacyRepository.findByEmail(pharmacistEmail)
                 .orElseThrow(() -> new RuntimeException("Pharmacist not found"));
 
-        Prescription prescription = prescriptionRepository.findByIdAndPharmacistEmail(prescriptionId, pharmacistEmail)
+        Prescription prescription = prescriptionRepository.findById(prescriptionId)
                 .orElseThrow(() -> new RuntimeException("Prescription not found"));
 
-        if (Boolean.TRUE.equals(prescription.getDispensed())) {
+        if (prescription.getStatus() == com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED) {
             throw new RuntimeException("Prescription already dispensed");
         }
 
-        String ref = prescription.getPatientReferenceNumber();
+        String ref = prescription.getPatient() != null ? prescription.getPatient().getReferenceNumber() : null;
         if (ref == null || ref.isBlank()) {
             throw new RuntimeException("Patient reference number is required to dispense");
         }
@@ -205,24 +195,35 @@ public class PharmacyService {
             throw new RuntimeException("Patient not found");
         }
 
-        var medicine = medicineRepository.findByNameAndPharmacyEmail(prescription.getMedicineName(), pharmacistEmail)
-                .orElseThrow(() -> new RuntimeException("Medicine not found in inventory"));
+        // For pricing, assume all items share same unit price by medicine name and sum across items.
+        double totalAmount = 0.0;
+        for (PrescriptionItem item : prescription.getItems()) {
+            var medicine = medicineRepository.findByNameAndPharmacyEmail(item.getMedicineName(), pharmacistEmail)
+                    .orElseThrow(() -> new RuntimeException("Medicine not found in inventory: " + item.getMedicineName()));
 
-        if (medicine.getQuantity() == null || medicine.getQuantity() < prescription.getQuantity()) {
-            throw new RuntimeException("Insufficient stock");
+            if (medicine.getQuantity() == null || medicine.getQuantity() < 1) {
+                throw new RuntimeException("Insufficient stock for medicine: " + item.getMedicineName());
+            }
+
+            // decrement by 1 unit per item (can be enhanced to quantity field later)
+            medicine.setQuantity(medicine.getQuantity() - 1);
+            medicineRepository.save(medicine);
+
+            if (medicine.getPrice() != null) {
+                totalAmount += medicine.getPrice();
+            }
         }
 
-        // Decrement stock at dispense time
-        medicine.setQuantity(medicine.getQuantity() - prescription.getQuantity());
-        medicineRepository.save(medicine);
-
-        // Mark prescription dispensed
-        prescription.setDispensed(true);
+        // Mark prescription and items as dispensed, associate with pharmacy
+        prescription.setStatus(com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED);
+        for (PrescriptionItem item : prescription.getItems()) {
+            item.setStatus(com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED);
+        }
+        prescription.setPharmacy(pharmacist);
         prescriptionRepository.save(prescription);
 
         Insurance insurance = patient.getInsurance();
         double coverageRate = coverageRateFor(insurance);
-        double totalAmount = (medicine.getPrice() != null ? medicine.getPrice() : 0.0) * (prescription.getQuantity() != null ? prescription.getQuantity() : 0);
         double insuranceCoveredAmount = totalAmount * coverageRate;
         double amountPaid = totalAmount - insuranceCoveredAmount;
 
@@ -235,17 +236,109 @@ public class PharmacyService {
         record.setTotalAmount(totalAmount);
         record.setInsuranceCoveredAmount(insuranceCoveredAmount);
         record.setAmountPaid(amountPaid);
-        record.setMedicineName(prescription.getMedicineName());
-        record.setQuantity(prescription.getQuantity());
+        record.setMedicineName(prescription.getItems() != null && !prescription.getItems().isEmpty() ? prescription.getItems().getFirst().getMedicineName() : null);
+        record.setQuantity(prescription.getItems() != null ? prescription.getItems().size() : 0);
         record.setPharmacist(pharmacist);
         DispenseRecord saved = dispenseRecordRepository.save(record);
 
         return new DispenseRecordResponse(
-                saved.getId(),
+                saved.getOrdinanceId(),
                 saved.getPatientReferenceNumber(),
                 saved.getInsuranceUsed(),
                 saved.getCoverageRate(),
+                saved.getDispensedAt(),
+                saved.getTotalAmount(),
+                saved.getInsuranceCoveredAmount(),
+                saved.getAmountPaid(),
+                saved.getMedicineName(),
+                saved.getQuantity()
+        );
+    }
+
+    /**
+     * Business logic: dispense a single prescription item for a patient and update stock accordingly.
+     * Marks the item as DISPENSED and, if all items are dispensed, marks the whole prescription as DISPENSED.
+     */
+    public DispenseRecordResponse dispensePrescriptionItem(String pharmacistEmail, Long prescriptionId, int itemIndex) {
+        var pharmacist = pharmacyRepository.findByEmail(pharmacistEmail)
+                .orElseThrow(() -> new RuntimeException("Pharmacist not found"));
+
+        Prescription prescription = prescriptionRepository.findById(prescriptionId)
+                .orElseThrow(() -> new RuntimeException("Prescription not found"));
+
+        if (prescription.getItems() == null || prescription.getItems().isEmpty()) {
+            throw new RuntimeException("Prescription has no items to dispense");
+        }
+
+        if (itemIndex < 0 || itemIndex >= prescription.getItems().size()) {
+            throw new RuntimeException("Invalid prescription item index");
+        }
+
+        PrescriptionItem item = prescription.getItems().get(itemIndex);
+        if (item.getStatus() == com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED) {
+            throw new RuntimeException("This medicine has already been dispensed");
+        }
+
+        String ref = prescription.getPatient() != null ? prescription.getPatient().getReferenceNumber() : null;
+        if (ref == null || ref.isBlank()) {
+            throw new RuntimeException("Patient reference number is required to dispense");
+        }
+
+        var patient = patientRepository.findByReferenceNumber(ref);
+        if (patient == null) {
+            throw new RuntimeException("Patient not found");
+        }
+
+        var medicine = medicineRepository.findByNameAndPharmacyEmail(item.getMedicineName(), pharmacistEmail)
+                .orElseThrow(() -> new RuntimeException("Medicine not found in inventory: " + item.getMedicineName()));
+
+        if (medicine.getQuantity() == null || medicine.getQuantity() < 1) {
+            throw new RuntimeException("Insufficient stock for medicine: " + item.getMedicineName());
+        }
+
+        // Decrement stock for this specific medicine
+        medicine.setQuantity(medicine.getQuantity() - 1);
+        medicineRepository.save(medicine);
+
+        double unitPrice = medicine.getPrice() != null ? medicine.getPrice() : 0.0;
+        double totalAmount = unitPrice;
+
+        // Mark this item as dispensed
+        item.setStatus(com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED);
+
+        // If all items are now dispensed, mark whole prescription as DISPPENSED
+        boolean allDispensed = prescription.getItems().stream()
+                .allMatch(i -> i.getStatus() == com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED);
+        if (allDispensed) {
+            prescription.setStatus(com.springboot.medsystem.Enums.PrescriptionStatus.DISPENSED);
+        }
+        prescription.setPharmacy(pharmacist);
+        prescriptionRepository.save(prescription);
+
+        Insurance insurance = patient.getInsurance();
+        double coverageRate = coverageRateFor(insurance);
+        double insuranceCoveredAmount = totalAmount * coverageRate;
+        double amountPaid = totalAmount - insuranceCoveredAmount;
+
+        DispenseRecord record = new DispenseRecord();
+        record.setPatientReferenceNumber(ref);
+        record.setInsuranceUsed(insurance);
+        record.setCoverageRate(coverageRate);
+        record.setOrdinanceId(prescription.getId());
+        record.setDispensedAt(LocalDateTime.now());
+        record.setTotalAmount(totalAmount);
+        record.setInsuranceCoveredAmount(insuranceCoveredAmount);
+        record.setAmountPaid(amountPaid);
+        record.setMedicineName(item.getMedicineName());
+        record.setQuantity(1);
+        record.setPharmacist(pharmacist);
+        DispenseRecord saved = dispenseRecordRepository.save(record);
+
+        return new DispenseRecordResponse(
                 saved.getOrdinanceId(),
+                saved.getPatientReferenceNumber(),
+                saved.getInsuranceUsed(),
+                saved.getCoverageRate(),
                 saved.getDispensedAt(),
                 saved.getTotalAmount(),
                 saved.getInsuranceCoveredAmount(),
@@ -263,11 +356,10 @@ public class PharmacyService {
 
         return records.stream()
                 .map(r -> new DispenseRecordResponse(
-                        r.getId(),
+                        r.getOrdinanceId(),
                         r.getPatientReferenceNumber(),
                         r.getInsuranceUsed(),
                         r.getCoverageRate(),
-                        r.getOrdinanceId(),
                         r.getDispensedAt(),
                         r.getTotalAmount(),
                         r.getInsuranceCoveredAmount(),
@@ -288,15 +380,41 @@ public class PharmacyService {
     }
 
     private MedicineResponse toResponse(Medicine m) {
-        return new MedicineResponse(
-                m.getId(),
+        String msg = String.format("%s (%s) - qty: %d, price: %.2f, category: %s, expires: %s",
                 m.getName(),
                 m.getBatch(),
                 m.getQuantity(),
                 m.getPrice(),
                 m.getCategory(),
-                m.getExpiryDate()
-        );
+                m.getExpiryDate());
+        return new MedicineResponse(msg);
+    }
+
+    private PrescriptionResponse toPrescriptionResponse(Prescription p) {
+        java.util.List<com.springboot.medsystem.DTO.PrescriptionItemDto> items = p.getItems() == null ? java.util.List.of() :
+                p.getItems().stream()
+                        .map(item -> {
+                            com.springboot.medsystem.DTO.PrescriptionItemDto dto = new com.springboot.medsystem.DTO.PrescriptionItemDto();
+                            dto.setMedicineName(item.getMedicineName());
+                            dto.setDosage(item.getDosage());
+                            dto.setFrequency(item.getFrequency());
+                            dto.setDuration(item.getDuration());
+                            dto.setNote(item.getNote());
+                            dto.setStatus(item.getStatus());
+                            return dto;
+                        })
+                        .toList();
+
+        String ref = p.getPatient() != null ? p.getPatient().getReferenceNumber() : null;
+        String name = p.getPatient() != null ? p.getPatient().getFullName() : null;
+
+        return com.springboot.medsystem.DTO.PrescriptionResponse.builder()
+                .id(p.getId())
+                .patientReferenceNumber(ref)
+                .prescribedAt(p.getPrescribedAt())
+                .status(p.getStatus())
+                .items(items)
+                .build();
     }
 
     private double coverageRateFor(Insurance insurance) {

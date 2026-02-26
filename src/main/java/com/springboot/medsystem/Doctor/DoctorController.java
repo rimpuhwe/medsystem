@@ -3,7 +3,8 @@ package com.springboot.medsystem.Doctor;
 import com.springboot.medsystem.DTO.DoctorDto;
 import com.springboot.medsystem.DTO.DoctorResponse;
 import com.springboot.medsystem.DTO.QueuePosition;
-import com.springboot.medsystem.Patient.PatientRepository;
+import com.springboot.medsystem.DTO.DoctorConsultationHistoryResponse;
+import com.springboot.medsystem.Doctor.DoctorPatientRecord;
 import com.springboot.medsystem.Patient.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -101,6 +102,24 @@ public class DoctorController {
             @AuthenticationPrincipal UserDetails userDetails) {
         doctorService.addConsultation(patientReferenceNumber,request, userDetails);
         return ResponseEntity.ok("Consultation saved for patient.");
+    }
+
+    @GetMapping("/consultation/history")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Get consultation history", description = "Doctor views consultation history filtered by patient reference/name or period (today, this_week, last_month).", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<List<DoctorConsultationHistoryResponse>> getConsultationHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String referenceNumber,
+            @RequestParam(required = false) String patientName,
+            @RequestParam(required = false) String period) {
+        return ResponseEntity.ok(doctorService.getConsultationHistory(userDetails, referenceNumber, patientName, period));
+    }
+
+    @GetMapping("/patients/records")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Get served patient records", description = "Doctor views served patients with last visit and number of prescriptions.", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<List<DoctorPatientRecord>> getServedPatientRecords(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(doctorService.getServedPatients(userDetails));
     }
 
 }

@@ -7,6 +7,7 @@ import com.springboot.medsystem.Consultation.ConsultationRepository;
 import com.springboot.medsystem.DTO.PatientProfileUpdateRequest;
 import com.springboot.medsystem.DTO.PatientQueueJoinRequest;
 import com.springboot.medsystem.DTO.QueuePosition;
+import com.springboot.medsystem.DTO.PrescriptionResponse;
 import com.springboot.medsystem.Doctor.DoctorProfile;
 import com.springboot.medsystem.Doctor.DoctorRepository;
 import com.springboot.medsystem.Enums.QueueStatus;
@@ -30,15 +31,17 @@ public class PatientService {
     private final ClinicService clinicService;
     private final DoctorRepository doctorRepository;
     private final ConsultationRepository consultationRepository;
+    private final com.springboot.medsystem.prescription.PrescriptionRepository prescriptionRepository;
 
     @Autowired
-    public PatientService(PatientRepository patientRepository, ClinicService clinicService, QueueManagementService queueManagementService, QueueManagementRepository queueManagementRepository, com.springboot.medsystem.Doctor.DoctorRepository doctorRepository, ConsultationRepository consultationRepository) {
+    public PatientService(PatientRepository patientRepository, ClinicService clinicService, QueueManagementService queueManagementService, QueueManagementRepository queueManagementRepository, com.springboot.medsystem.Doctor.DoctorRepository doctorRepository, ConsultationRepository consultationRepository, com.springboot.medsystem.prescription.PrescriptionRepository prescriptionRepository) {
         this.patientRepository = patientRepository;
         this.queueManagementService = queueManagementService;
         this.queueManagementRepository = queueManagementRepository;
         this.clinicService = clinicService;
         this.doctorRepository = doctorRepository;
         this.consultationRepository = consultationRepository;
+        this.prescriptionRepository = prescriptionRepository;
     }
     public Map<String, Object> getMedicalHistoryAndConditions(String email, LocalDate startDate, LocalDate endDate) {
         Optional<PatientProfile> patientOpt = getProfileByEmail(email);
@@ -188,7 +191,7 @@ public class PatientService {
         List<QueueManagement> allForService = queueManagementRepository.findByClinic_ClinicNameAndService(clinicName, doctor.getService().toString());
         List<QueuePosition> result = new ArrayList<>();
         for (QueueManagement qm : allForService) {
-            if (today.equals(qm.getQueueDate())) {
+            if (today.equals(qm.getQueueDate()) && qm.getStatus() != com.springboot.medsystem.Enums.QueueStatus.SERVED) {
                 result.add(new QueuePosition(qm.getPatientReferenceNumber(), qm.getPosition(), qm.getClinic(), qm.getService(), qm.getDoctorName() , qm.getStatus()));
             }
         }
@@ -238,5 +241,43 @@ public class PatientService {
         result.put("clinic", clinicName);
         result.put("doctor", doctorNames);
         return result;
+    }
+
+    public PatientProfile getPatientByReferenceNumber(String referenceNumber) {
+        return  patientRepository.findByReferenceNumber (referenceNumber);
+    }
+
+    public java.util.List<PrescriptionResponse> getActivePrescriptionsForPatient(String email) {
+        Optional<PatientProfile> patientOpt = getProfileByEmail(email);
+        if (patientOpt.isEmpty()) {
+            return java.util.List.of();
+        }
+        PatientProfile patient = patientOpt.get();
+        String refNumber = patient.getReferenceNumber();
+        return prescriptionRepository.findByPatientReferenceNumberAndStatus(refNumber, com.springboot.medsystem.Enums.PrescriptionStatus.ACTIVE)
+                .stream()
+                .map(p -> {
+                    java.util.List<com.springboot.medsystem.DTO.PrescriptionItemDto> items = p.getItems() == null ? java.util.List.of() :
+                            p.getItems().stream()
+                                    .map(item -> {
+                                        com.springboot.medsystem.DTO.PrescriptionItemDto dto = new com.springboot.medsystem.DTO.PrescriptionItemDto();
+                                        dto.setMedicineName(item.getMedicineName());
+                                        dto.setDosage(item.getDosage());
+                                        dto.setFrequency(item.getFrequency());
+                                        dto.setDuration(item.getDuration());
+                                        dto.setNote(item.getNote());
+                                        dto.setStatus(item.getStatus());
+                                        return dto;
+                                    })
+                                    .toList();
+                    return com.springboot.medsystem.DTO.PrescriptionResponse.builder()
+                            .id(p.getId())
+                            .patientReferenceNumber(refNumber)
+                            .prescribedAt(p.getPrescribedAt())
+                            .status(p.getStatus())
+                            .items(items)
+                            .build();
+                })
+                .toList();
     }
 }
